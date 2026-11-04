@@ -11,6 +11,14 @@
 :root{--bg:#120a2e;--panel:#1d1145;--pink:#ff2e97;--cyan:#19e3ff;--yellow:#ffd23f;--green:#3dff7a;--orange:#ff8a1f;--ink:#f4f0ff;--dim:#b9b0e8;--read:'VT323',ui-monospace,Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7}
+body{background:transparent}
+#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(#0b0620 0,#120a2e 45%,#2b1055 62%,#120a2e 62%)}
+#bg i{position:absolute;width:2px;height:2px;animation:tw 3s steps(1) infinite}
+#bg i.big{width:4px;height:4px}
+@keyframes tw{50%{opacity:.2}}
+#bg .sun{position:absolute;left:50%;bottom:38%;width:min(46vw,200px);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:linear-gradient(#ffd23f,#ff2e97);opacity:.5;-webkit-mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px);mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px)}
+#bg .grid{position:absolute;left:-60%;right:-60%;bottom:0;height:55%;transform:perspective(220px) rotateX(55deg);transform-origin:50% 100%;opacity:.5;background-image:linear-gradient(rgba(255,46,151,.8) 2px,transparent 2px),linear-gradient(90deg,rgba(25,227,255,.8) 2px,transparent 2px);background-size:48px 32px;animation:gm 1s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
+@keyframes gm{to{background-position:0 32px}}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)}
 #app{max-width:760px;margin:0 auto;padding:14px 14px 40px}
 .logo{text-align:center;margin:14px 0 4px}
@@ -68,10 +76,11 @@ pre{margin:0 0 14px;padding:12px;background:#000;color:var(--green);border-left:
 @keyframes pop{0%{transform:scale(.2)}25%{transform:scale(1.2)}60%{transform:scale(1)}100%{transform:scale(1);opacity:0}}
 #cf{position:fixed;inset:0;z-index:30;pointer-events:none}
 #status{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--pink);color:#000;text-align:center;padding:6px;font-size:10px}
-@media (prefers-reduced-motion:reduce){.blink,.stand,.lane::before,.parade .sprite,.fr.f0,.horse.nitro::before,#fx .lines{animation:none}.horse{transition:none}}
+@media (prefers-reduced-motion:reduce){#bg i,#bg .grid,.blink,.stand,.lane::before,.parade .sprite,.fr.f0,.horse.nitro::before,#fx .lines{animation:none}.horse{transition:none}}
 </style>
 </head>
 <body>
+<div id="bg"><div class="sun"></div><div class="grid"></div></div>
 <div id="status" class="hide">RECONNECTING...</div>
 <div id="fx"></div><canvas id="cf" class="hide"></canvas>
 <div id="app">
@@ -294,6 +303,16 @@ function renderEnd(m) {
   drawTrack($('#eTrack'), m.top, m.me, m.max, false);
   beep([523, 659, 784, 1047]); confetti();
 }
+
+(function () {
+  const bg = $('#bg'), cols = ['#fff', '#19e3ff', '#ffd23f', '#ff2e97'];
+  for (let i = 0; i < 70; i++) {
+    const st = document.createElement('i');
+    st.style.cssText = 'left:' + Math.random() * 100 + '%;top:' + Math.random() * 60 + '%;background:' + cols[Math.random() * 4 | 0] + ';animation-delay:' + (-Math.random() * 3) + 's';
+    if (Math.random() < .2) st.className = 'big';
+    bg.appendChild(st);
+  }
+})();
 
 show('s-join');
 if (name) $('#name').value = name;
