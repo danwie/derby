@@ -60,7 +60,7 @@ setInterval(() => clients.forEach(c => { try { c.socket.write(Buffer.from([0x89,
 
 // ---------- Spel ----------
 const players = new Map(); // token -> spelare
-let phase = 'lobby', qi = -1, cur = null, timer = null;
+let phase = 'lobby', qi = -1, cur = null, timer = null, revealTimer = null;
 
 const live = () => [...players.values()].filter(p => p.c);
 const answered = () => live().filter(p => p.ans !== null).length;
@@ -83,6 +83,8 @@ function handle(c, m) {
     pulse();
   } else if (m.t === 'start' && c.admin && phase === 'lobby') {
     nextQ();
+  } else if (m.t === 'reset' && c.admin) {
+    reset();
   } else if (m.t === 'a' && phase === 'question' && c.player && c.player.ans === null && m.i === qi) {
     const k = m.c | 0;
     if (k < 0 || k > 3) return;
@@ -91,6 +93,17 @@ function handle(c, m) {
     pulse();
     if (live().every(p => p.ans !== null)) reveal();
   }
+}
+
+function reset() {
+  clearTimeout(timer); clearTimeout(revealTimer);
+  phase = 'lobby'; qi = -1; cur = null;
+  players.forEach((p, k) => {
+    if (!p.c) { players.delete(k); return; }
+    p.score = 0; p.streak = 0; p.ans = null; p.t = 0; p.delta = 0; p.ok = false;
+  });
+  live().forEach(p => send(p.c, { t: 'reset' }));
+  pulse();
 }
 
 function drop(c) {
@@ -153,7 +166,7 @@ function reveal() {
     } else p.streak = 0;
   });
   live().forEach(p => send(p.c, Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1 }, board(p))));
-  setTimeout(nextQ, REVEAL_MS);
+  revealTimer = setTimeout(nextQ, REVEAL_MS);
 }
 
 server.listen(PORT, () => console.log('Sundsgården SQL Derby running on port ' + PORT));
