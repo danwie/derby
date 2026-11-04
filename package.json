@@ -1,0 +1,8 @@
+{
+  "name": "sql-derby",
+  "version": "1.0.0",
+  "description": "Sundsgården SQL Derby - multiplayer SQL quiz in 80s arcade style",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
