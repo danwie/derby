@@ -170,12 +170,19 @@ function nextQ() {
   timer = setTimeout(reveal, dur);
 }
 
+// share of the track the leader has earned: questions finished, weighted by level
+function progress() {
+  let s = 0;
+  for (let i = 0; i <= Math.min(qi, Q.length - 1); i++) s += 100 * Q[i].l + 100;
+  return s / MAXSCORE;
+}
+
 function board(p) {
   const ranked = [...players.values()].sort((a, b) => b.score - a.score);
   return {
     top: ranked.slice(0, 5).map(x => ({ name: x.name, score: x.score, you: x === p })),
     me: { rank: ranked.indexOf(p) + 1, score: p.score, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
-    total: ranked.length, max: MAXSCORE
+    total: ranked.length, max: MAXSCORE, prog: progress()
   };
 }
 
