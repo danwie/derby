@@ -8,7 +8,7 @@ const Q = require("./questions.js");
 const PORT = process.env.PORT || 3000;
 const ADMIN = process.env.ADMIN_KEY || "derby";
 const MAX_PLAYERS = 50,
-  REVEAL_MS = 9000;
+  REVEAL_MS = 12000;
 const TIMES = [0, 45, 60, 75, 90, 90]; // sekunder per nivå
 const MAXSCORE = Q.reduce((s, q) => s + 100 * q.l + 100, 0);
 const html = fs.readFileSync(path.join(__dirname, "index.html"));
