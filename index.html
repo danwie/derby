@@ -12,13 +12,29 @@
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7}
 body{background:transparent}
-#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(#0b0620 0,#120a2e 45%,#2b1055 62%,#120a2e 62%)}
+#bg{--c:clamp(10px,2.2vh,22px);position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(#0b0620 0 28%,#120a2e 28% 42%,#1d0f45 42% 50%,#2b1055 50% 55%,#3d1368 55% 60%,#120a2e 60%)}
 #bg i{position:absolute;width:2px;height:2px;animation:tw 3s steps(1) infinite}
 #bg i.big{width:4px;height:4px}
 @keyframes tw{50%{opacity:.2}}
-#bg .sun{position:absolute;left:50%;bottom:38%;width:min(46vw,200px);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:linear-gradient(#ffd23f,#ff2e97);opacity:.5;-webkit-mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px);mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px)}
-#bg .grid{position:absolute;left:-60%;right:-60%;bottom:0;height:55%;transform:perspective(220px) rotateX(55deg);transform-origin:50% 100%;opacity:.5;background-image:linear-gradient(rgba(255,46,151,.8) 2px,transparent 2px),linear-gradient(90deg,rgba(25,227,255,.8) 2px,transparent 2px);background-size:48px 32px;animation:gm 1s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
-@keyframes gm{to{background-position:0 32px}}
+#bg .sun{position:absolute;left:50%;bottom:37%;width:min(50vw,220px);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:linear-gradient(#ffd23f,#ff2e97);opacity:.55;-webkit-mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px);mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px)}
+#bg .mt{position:absolute;left:0;right:0;bottom:calc(40% - var(--c));pointer-events:none}
+#bg .mt svg{position:absolute;left:0;bottom:0;width:200%;height:100%;display:block;animation:mv 180s linear infinite}
+#bg .m1{height:clamp(70px,20vh,190px)}
+#bg .m2{height:clamp(44px,11vh,110px)}
+#bg .m2 svg{animation-duration:80s}
+#bg .mf{stroke:none}
+#bg .m1 .mf{fill:#170c38}
+#bg .m2 .mf{fill:#0e0726}
+@keyframes mv{to{transform:translateX(-50%)}}
+#bg .floor{position:absolute;left:0;right:0;bottom:0;height:40%;overflow:hidden;background:var(--bg);perspective:42vh;perspective-origin:50% 0;border-radius:50% 50% 0 0 / var(--c) var(--c) 0 0;box-shadow:0 -4px 0 rgba(255,46,151,.35),0 -10px 0 rgba(255,46,151,.2),0 -18px 0 rgba(255,46,151,.1)}
+#bg .floor::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 3px 0 rgba(255,138,31,.95),inset 0 8px 0 rgba(255,46,151,.3),inset 0 16px 0 rgba(255,46,151,.15)}
+#bg .plane{position:absolute;left:-150%;right:-150%;top:0;height:36vh;transform-origin:50% 0;transform:rotateX(76deg)}
+#bg .scroll{position:absolute;left:0;right:0;top:-40px;bottom:0;opacity:.75;background-image:linear-gradient(rgba(255,46,151,.3) 0 1px,#ff2e97 1px 2px,rgba(255,46,151,.3) 2px 3px,transparent 3px),linear-gradient(90deg,rgba(25,227,255,.3) 0 1px,#19e3ff 1px 3px,rgba(25,227,255,.3) 3px 4px,transparent 4px);background-size:64px 40px;animation:fl 1.9s linear infinite}
+@keyframes fl{to{transform:translateY(40px)}}
+#bg .ff{position:absolute;left:0;right:0;top:0;height:60%;background:linear-gradient(#120a2e 0 12%,rgba(18,10,46,.8) 12% 25%,rgba(18,10,46,.55) 25% 40%,rgba(18,10,46,.28) 40% 60%,rgba(18,10,46,.1) 60% 80%,transparent 80%)}
+#bg .dim{position:absolute;inset:0;background:var(--bg);opacity:0;transition:opacity .4s}
+#bg.q .dim{opacity:.55}
+#coin{position:fixed;left:50%;bottom:52px;transform:translateX(-50%);z-index:20;font-size:12px;letter-spacing:2px;white-space:nowrap;color:var(--yellow);text-shadow:2px 2px 0 #000;pointer-events:none;animation:bl 1s steps(1) infinite}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)}
 #app{max-width:760px;margin:0 auto;padding:14px 14px 70px}
 .logo{text-align:center;margin:14px 0 4px}
@@ -81,12 +97,13 @@ pre{margin:0 0 14px;padding:12px;background:#000;color:var(--green);border-left:
 #muteBtn{position:fixed;left:10px;bottom:10px;z-index:55;width:auto;margin:0;font-size:9px;padding:8px 10px;border-color:var(--cyan);color:var(--cyan);background:#000}
 #resetBtn{position:fixed;right:10px;bottom:10px;z-index:55;width:auto;margin:0;font-size:9px;padding:8px 10px;border-color:var(--pink);color:var(--pink);background:#000}
 #status{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--pink);color:#000;text-align:center;padding:6px;font-size:10px}
-@media (prefers-reduced-motion:reduce){.tag,#bg i,#bg .grid,.blink,.stand,.lane::before,.parade .sprite,.fr.f0,.horse.nitro::before,#fx .lines{animation:none}.horse{transition:none}}
+@media (prefers-reduced-motion:reduce){.tag,#bg i,#bg .scroll,#bg .mt svg,#coin,.blink,.stand,.lane::before,.parade .sprite,.fr.f0,.horse.nitro::before,#fx .lines{animation:none}.horse{transition:none}}
 </style>
 </head>
 <body>
-<div id="bg"><div class="sun"></div><div class="grid"></div></div>
+<div id="bg"><div class="sun"></div><div class="mt m1"><svg viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true"><g><path class="mf" d="M0,100 L0,62 30,48 55,58 90,22 120,50 150,38 185,60 220,30 255,55 290,40 330,64 365,44 400,62 L400,100Z"/></g><g transform="translate(400 0)"><path class="mf" d="M0,100 L0,62 30,48 55,58 90,22 120,50 150,38 185,60 220,30 255,55 290,40 330,64 365,44 400,62 L400,100Z"/></g></svg></div><div class="mt m2"><svg viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true"><g><path class="mf" d="M0,100 L0,70 40,52 70,66 110,40 140,60 190,34 225,58 260,46 300,68 345,50 400,70 L400,100Z"/></g><g transform="translate(400 0)"><path class="mf" d="M0,100 L0,70 40,52 70,66 110,40 140,60 190,34 225,58 260,46 300,68 345,50 400,70 L400,100Z"/></g></svg></div><div class="floor"><div class="plane"><div class="scroll"></div></div><div class="ff"></div></div><div class="dim"></div></div>
 <div id="status" class="hide">RECONNECTING...</div>
+<div id="coin" class="hide">INSERT COIN</div>
 <button id="muteBtn">SOUND: ON</button>
 <button id="resetBtn" class="hide">RESTART GAME</button>
 <div id="fx"></div><canvas id="cf" class="hide"></canvas>
@@ -170,7 +187,7 @@ for (let i = 0; i < 5; i++) { const h = horse(i); h.style.animationDelay = (-i *
 function show(id) {
   ['s-join', 's-wait', 's-q', 's-r', 's-end'].forEach(s => $('#' + s).classList.toggle('hide', s !== id));
   $('#hero').classList.toggle('hide', id !== 's-join' && id !== 's-wait');
-  $('#tag').classList.toggle('hide', id !== 's-join');
+  $('#tag').classList.toggle('hide', id !== 's-wait');
   Sfx.play(id === 's-r' ? 'race' : id === 's-q' ? 'game' : 'menu');
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
@@ -431,13 +448,21 @@ function renderEnd(m) {
 }
 
 (function () {
-  const bg = $('#bg'), cols = ['#fff', '#19e3ff', '#ffd23f', '#ff2e97'];
+  const bg = $('#bg'), cols = ['#fff', '#19e3ff', '#ffd23f', '#ff2e97'], first = bg.firstChild;
   for (let i = 0; i < 70; i++) {
     const st = document.createElement('i');
-    st.style.cssText = 'left:' + Math.random() * 100 + '%;top:' + Math.random() * 60 + '%;background:' + cols[Math.random() * 4 | 0] + ';animation-delay:' + (-Math.random() * 3) + 's';
+    st.style.cssText = 'left:' + Math.random() * 100 + '%;top:' + Math.random() * 52 + '%;background:' + cols[Math.random() * 4 | 0] + ';animation-delay:' + (-Math.random() * 3) + 's';
     if (Math.random() < .2) st.className = 'big';
-    bg.appendChild(st);
+    bg.insertBefore(st, first);
   }
+  // dim the background while a question is on screen (no change to show())
+  const sq = $('#s-q'), sync = () => bg.classList.toggle('q', !sq.classList.contains('hide'));
+  new MutationObserver(sync).observe(sq, { attributes: true, attributeFilter: ['class'] });
+  sync();
+  // INSERT COIN on the join screen only
+  const coin = $('#coin'), ss = [$('#s-join')], cs = () => coin.classList.toggle('hide', ss.every(e => e.classList.contains('hide')));
+  ss.forEach(e => new MutationObserver(cs).observe(e, { attributes: true, attributeFilter: ['class'] }));
+  cs();
 })();
 
 show('s-join');
