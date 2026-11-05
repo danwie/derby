@@ -119,7 +119,7 @@ pre{margin:0 0 14px;padding:12px;background:#000;color:var(--green);border-left:
   </section>
 
   <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p></div>
+    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rPause" class="y blink hide">PAUSED BY HOST</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
     <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
     <p id="rMe" class="y"></p>
   </section>
@@ -136,7 +136,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const adminKey = new URLSearchParams(location.search).get('admin') || '';
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ws, token = localStorage.getItem('derbyToken') || '', name = localStorage.getItem('derbyName') || '';
-let isAdmin = false, qIdx = -1, deadline = 0, dur = 1, timerId = null;
+let paused = false, isAdmin = false, qIdx = -1, deadline = 0, dur = 1, timerId = null;
 const prev = {};
 
 // ---------- pixel horse (16x12 grid): b body, d dark, e eye, j jockey ----------
@@ -166,9 +166,7 @@ for (let i = 0; i < 5; i++) { const h = horse(i); h.style.animationDelay = (-i *
 function show(id) {
   ['s-join', 's-wait', 's-q', 's-r', 's-end'].forEach(s => $('#' + s).classList.toggle('hide', s !== id));
   $('#hero').classList.toggle('hide', id !== 's-join' && id !== 's-wait');
-  if (id === 's-join' || id === 's-wait' || id === 's-end') Sfx.play('menu');
-  else if (id === 's-q') Sfx.stop();
-  else if (id === 's-r') Sfx.play('race');
+  Sfx.play(id === 's-r' ? 'race' : 'menu');
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 
@@ -221,8 +219,8 @@ const Sfx = (() => {
   }
   function menuOn() {
     if (!bgm) {
-      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = 0.8; bgm.muted = muted;
-      bgm.addEventListener('error', () => { bgmFailed = true; if (want === 'menu' && unlocked) start('menu'); });
+      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = 0.5; bgm.muted = muted;
+      bgm.addEventListener('error', () => { bgmFailed = true; if (want && unlocked) start('menu'); });
     }
     const p = bgm.play(); if (p && p.catch) p.catch(() => {});
   }
@@ -230,16 +228,18 @@ const Sfx = (() => {
   function horsesOn() {
     if (!horsesEl) {
       horsesEl = new Audio('horses.mp3'); horsesEl.volume = 0.9; horsesEl.muted = muted;
-      horsesEl.addEventListener('error', () => { horsesFailed = true; if (want === 'race' && unlocked) start('race'); });
+      horsesEl.addEventListener('error', () => { horsesFailed = true; });
     }
     try { horsesEl.currentTime = 0; } catch (e) {}
     const p = horsesEl.play(); if (p && p.catch) p.catch(() => {});
   }
   function horsesOff() { if (horsesEl) horsesEl.pause(); }
   function route(name) {
-    if (name === 'menu') { horsesOff(); if (!bgmFailed) { stopLoop(); menuOn(); } else if (mode !== 'menu') start('menu'); }
-    else if (name === 'race') { menuOff(); if (!horsesFailed) { stopLoop(); if (!horsesEl || horsesEl.paused) horsesOn(); } else if (mode !== 'race') start('race'); }
-    else { menuOff(); horsesOff(); if (mode !== name) start(name); }
+    // the background music runs on every screen
+    if (!bgmFailed) { stopLoop(); menuOn(); } else if (mode !== 'menu') start('menu');
+    // horses.mp3 is layered on top while the horses run
+    if (name === 'race') { if (!horsesFailed && (!horsesEl || horsesEl.paused)) horsesOn(); }
+    else horsesOff();
   }
   return {
     play(name) { want = name; if (unlocked) route(name); },
@@ -311,6 +311,12 @@ $('#name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn
 const muteLabel = () => { $('#muteBtn').textContent = Sfx.isMuted() ? 'SOUND: OFF' : 'SOUND: ON'; };
 muteLabel();
 $('#muteBtn').onclick = () => { Sfx.unlock(); Sfx.toggle(); muteLabel(); };
+function setPause(on) {
+  paused = on;
+  $('#rPause').classList.toggle('hide', !on);
+  $('#pauseBtn').textContent = on ? 'CONTINUE' : 'PAUSE';
+}
+$('#pauseBtn').onclick = () => tx({ t: paused ? 'resume' : 'pause' });
 $('#resetBtn').onclick = () => { if (confirm('Restart the game? All scores will be reset and everyone goes back to the lobby.')) tx({ t: 'reset' }); };
 $('#startBtn').onclick = () => { beep([523, 659, 784]); tx({ t: 'start', key: adminKey }); };
 
@@ -319,6 +325,8 @@ function on(m) {
     token = m.token; isAdmin = m.admin; name = m.name;
     localStorage.setItem('derbyToken', token);
     $('#resetBtn').classList.toggle('hide', !isAdmin);
+  } else if (m.t === 'pause') {
+    setPause(m.on);
   } else if (m.t === 'reset') {
     Object.keys(prev).forEach(k => delete prev[k]);
     $('#cf').classList.add('hide'); $('#fx').textContent = '';
@@ -391,6 +399,7 @@ function renderR(m) {
   h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.answered ? 'WRONG!' : "TIME'S UP");
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  NITRO! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
+  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   drawTrack($('#rTrack'), m.top, me, m.max, nitro);
   $('#rMe').textContent = 'You are in place ' + me.rank + ' of ' + m.total + ' with ' + me.score + ' points';
   beep(me.ok ? [523, 784] : [196, 147]);
