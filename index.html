@@ -166,13 +166,13 @@ for (let i = 0; i < 5; i++) { const h = horse(i); h.style.animationDelay = (-i *
 function show(id) {
   ['s-join', 's-wait', 's-q', 's-r', 's-end'].forEach(s => $('#' + s).classList.toggle('hide', s !== id));
   $('#hero').classList.toggle('hide', id !== 's-join' && id !== 's-wait');
-  Sfx.play(id === 's-r' ? 'race' : 'menu');
+  Sfx.play(id === 's-r' ? 'race' : id === 's-q' ? 'game' : 'menu');
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 
 const Sfx = (() => {
   let ctx = null, master = null, noiseBuf = null, muted = localStorage.getItem('derbyMute') === '1';
-  let want = null, mode = null, timer = null, step = 0, nextT = 0, autoStop = null, bgm = null, bgmFailed = false, unlocked = false, horsesEl = null, horsesFailed = false;
+  let want = null, mode = null, timer = null, step = 0, nextT = 0, autoStop = null, bgm = null, bgmFailed = false, unlocked = false, horsesEl = null, horsesFailed = false, bgmVol = 0.5, fadeT = null;
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
   const SONGS = {
     menu: { dt: 0.2,
@@ -219,7 +219,7 @@ const Sfx = (() => {
   }
   function menuOn() {
     if (!bgm) {
-      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = 0.5; bgm.muted = muted;
+      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = bgmVol; bgm.muted = muted;
       bgm.addEventListener('error', () => { bgmFailed = true; if (want && unlocked) start('menu'); });
     }
     const p = bgm.play(); if (p && p.catch) p.catch(() => {});
@@ -234,7 +234,19 @@ const Sfx = (() => {
     const p = horsesEl.play(); if (p && p.catch) p.catch(() => {});
   }
   function horsesOff() { if (horsesEl) horsesEl.pause(); }
+  function setBgmVol(v) {
+    bgmVol = v;
+    if (!bgm) return;
+    clearInterval(fadeT);
+    fadeT = setInterval(() => {
+      const d = v - bgm.volume;
+      if (Math.abs(d) < 0.02) { bgm.volume = v; clearInterval(fadeT); }
+      else bgm.volume = Math.min(1, Math.max(0, bgm.volume + Math.sign(d) * 0.02));
+    }, 60);
+  }
   function route(name) {
+    // quieter background music while a game is running
+    setBgmVol(name === 'menu' ? 0.5 : 0.3);
     // the background music runs on every screen
     if (!bgmFailed) { stopLoop(); menuOn(); } else if (mode !== 'menu') start('menu');
     // horses.mp3 is layered on top while the horses run
