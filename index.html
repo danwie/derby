@@ -1,443 +1,1285 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sundsgården SQL Derby</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#120a2e;--panel:#1d1145;--pink:#ff2e97;--cyan:#19e3ff;--yellow:#ffd23f;--green:#3dff7a;--orange:#ff8a1f;--ink:#f4f0ff;--dim:#b9b0e8;--read:'VT323',ui-monospace,Menlo,Consolas,monospace}
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7}
-body{background:transparent}
-#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(#0b0620 0,#120a2e 45%,#2b1055 62%,#120a2e 62%)}
-#bg i{position:absolute;width:2px;height:2px;animation:tw 3s steps(1) infinite}
-#bg i.big{width:4px;height:4px}
-@keyframes tw{50%{opacity:.2}}
-#bg .sun{position:absolute;left:50%;bottom:38%;width:min(46vw,200px);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:linear-gradient(#ffd23f,#ff2e97);opacity:.5;-webkit-mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px);mask-image:repeating-linear-gradient(#000 0 14px,transparent 14px 18px)}
-#bg .grid{position:absolute;left:-60%;right:-60%;bottom:0;height:55%;transform:perspective(220px) rotateX(55deg);transform-origin:50% 100%;opacity:.5;background-image:linear-gradient(rgba(255,46,151,.8) 2px,transparent 2px),linear-gradient(90deg,rgba(25,227,255,.8) 2px,transparent 2px);background-size:48px 32px;animation:gm 1s linear infinite;-webkit-mask-image:linear-gradient(transparent,#000 70%);mask-image:linear-gradient(transparent,#000 70%)}
-@keyframes gm{to{background-position:0 32px}}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)}
-#app{max-width:760px;margin:0 auto;padding:14px 14px 40px}
-.logo{text-align:center;margin:14px 0 4px}
-.logo .a{font-size:clamp(12px,4vw,18px);color:var(--cyan);text-shadow:2px 2px 0 var(--pink);letter-spacing:2px}
-.logo .b{font-size:clamp(26px,9vw,52px);line-height:1.2;color:var(--yellow);margin-top:8px;text-shadow:3px 3px 0 var(--pink),6px 6px 0 #4a1a6b,9px 9px 0 #22103f}
-.parade{position:relative;height:40px;overflow:hidden;margin:14px 0 6px}
-.parade .sprite{position:absolute;bottom:0;left:-50px;animation:run 7s linear infinite}
-@keyframes run{to{left:100%}}
-.sub{color:var(--dim);text-align:center;margin-bottom:18px}
-h2{font-size:15px;line-height:1.5;margin:0 0 12px;color:var(--cyan)}
-#qText{font-family:var(--read);font-size:30px;line-height:1.2;color:#fff;letter-spacing:.5px}
-#waitText,#qProg,#rSub,#rMe,#eMe,.sub,.track .nm{font-family:var(--read);font-size:22px;line-height:1.3}
-.box{background:var(--panel);border:3px solid var(--cyan);padding:16px;margin:14px 0;box-shadow:5px 5px 0 var(--pink)}
-.hud{display:flex;justify-content:space-between;gap:8px;color:var(--yellow);font-size:11px}
-input{width:100%;font:inherit;font-size:14px;padding:12px;background:#000;color:var(--green);border:3px solid var(--green);outline:none;margin:10px 0 14px}
-input:focus-visible,button:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-button{font:inherit;font-size:12px;color:var(--ink);background:#000;border:3px solid var(--yellow);padding:14px;cursor:pointer;width:100%;text-align:left;margin:8px 0;line-height:1.6}
-button.go{text-align:center;color:#000;background:var(--yellow);font-size:14px}
-button.go:active,button.opt:active{transform:translate(2px,2px)}
-button.opt{border-color:var(--cyan);font-family:var(--read);font-size:26px;line-height:1.25;padding:12px 14px;letter-spacing:.5px}
-button.opt .k{color:var(--pink);margin-right:10px}
-button.opt.sel{background:var(--cyan);color:#000}
-button.opt.sel .k{color:#000}
-button:disabled{cursor:default}
-pre{margin:0 0 14px;padding:12px;background:#000;color:var(--green);border-left:5px solid var(--green);white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:17px;line-height:1.5}
-.bar{height:12px;background:#000;border:2px solid var(--dim);margin:8px 0 14px}
-.bar i{display:block;height:100%;background:var(--green);width:100%}
-.bar.low i{background:var(--pink)}
-.big{font-size:18px;line-height:1.4;margin:6px 0}
-.ok{color:var(--green)}.no{color:var(--pink)}.y{color:var(--yellow)}.d{color:var(--dim)}
-.hide{display:none}
-/* sprites and track */
-.sprite{width:44px;height:33px;display:block}
-.fr.f0{animation:fa .36s steps(1,end) infinite}
-.fr.f1{animation:fb .36s steps(1,end) infinite}
-@keyframes fa{0%{opacity:1}50%{opacity:0}}
-@keyframes fb{0%{opacity:0}50%{opacity:1}}
-.stand{height:46px;margin:-4px -4px 10px;border-bottom:4px solid #fff;background:radial-gradient(circle at 4px 4px,var(--pink) 3px,transparent 3.5px) 0 0/16px 14px,radial-gradient(circle at 12px 11px,var(--cyan) 3px,transparent 3.5px) 0 0/16px 14px,radial-gradient(circle at 8px 8px,var(--yellow) 2.5px,transparent 3px) 0 0/16px 14px,#2a1a5e;animation:bob .8s steps(1) infinite}
-@keyframes bob{50%{background-position:0 2px,0 -2px,0 2px,0 0}}
-.track .nm{color:var(--dim);display:flex;justify-content:space-between;margin-top:8px}
-.track.you .nm{color:var(--yellow)}
-.lane{position:relative;height:40px;border-top:3px solid #fff;background:#b57a3c;overflow:hidden}
-.lane::before{content:"";position:absolute;left:0;right:0;bottom:7px;height:3px;background:repeating-linear-gradient(90deg,#e8c88a 0 12px,transparent 12px 28px);animation:scr .5s linear infinite}
-@keyframes scr{to{background-position:-28px 0}}
-.finish{position:absolute;right:0;top:0;bottom:0;width:10px;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 0 0/10px 10px}
-.horse{position:absolute;bottom:2px;left:0;transition:left 1.8s steps(18,end)}
-.horse.nitro::before{content:"";position:absolute;right:100%;top:12px;width:6px;height:6px;background:var(--orange);box-shadow:-8px 0 var(--yellow),-16px 3px var(--pink),-24px -2px var(--orange),-32px 2px var(--yellow);animation:bl .2s steps(1) infinite}
-@keyframes bl{50%{opacity:.3}}
-.blink{animation:bl 1s steps(1) infinite}
-/* effects */
-#fx{position:fixed;inset:0;z-index:40;pointer-events:none;display:flex;align-items:center;justify-content:center}
-#fx .lines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 22px,rgba(255,210,63,.35) 22px 25px);animation:ln .3s linear 5}
-@keyframes ln{from{background-position:0 0}to{background-position:-200px 0}}
-#fx .word{position:relative;font-size:clamp(28px,12vw,64px);color:var(--yellow);text-shadow:4px 4px 0 var(--pink),8px 8px 0 var(--orange);animation:pop 1.6s steps(8) 1 forwards}
-@keyframes pop{0%{transform:scale(.2)}25%{transform:scale(1.2)}60%{transform:scale(1)}100%{transform:scale(1);opacity:0}}
-#cf{position:fixed;inset:0;z-index:30;pointer-events:none}
-.expl{font-family:var(--read);font-size:22px;line-height:1.3;color:var(--ink);border-left:4px solid var(--yellow);padding-left:10px;margin:12px 0 0}
-#muteBtn{position:fixed;left:10px;bottom:10px;z-index:55;width:auto;margin:0;font-size:9px;padding:8px 10px;border-color:var(--cyan);color:var(--cyan);background:#000}
-#resetBtn{position:fixed;right:10px;bottom:10px;z-index:55;width:auto;margin:0;font-size:9px;padding:8px 10px;border-color:var(--pink);color:var(--pink);background:#000}
-#status{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--pink);color:#000;text-align:center;padding:6px;font-size:10px}
-@media (prefers-reduced-motion:reduce){#bg i,#bg .grid,.blink,.stand,.lane::before,.parade .sprite,.fr.f0,.horse.nitro::before,#fx .lines{animation:none}.horse{transition:none}}
-</style>
-</head>
-<body>
-<div id="bg"><div class="sun"></div><div class="grid"></div></div>
-<div id="status" class="hide">RECONNECTING...</div>
-<button id="muteBtn">SOUND: ON</button>
-<button id="resetBtn" class="hide">RESTART GAME</button>
-<div id="fx"></div><canvas id="cf" class="hide"></canvas>
-<div id="app">
-  <header id="hero">
-    <div class="logo"><div class="a">SUNDSGÅRDEN</div><div class="b">SQL<br>DERBY</div></div>
-    <div class="parade" id="parade"></div>
-    <div class="sub">Answer right. Run fastest.</div>
-  </header>
-
-  <section id="s-join" class="box">
-    <h2>Enter your name</h2>
-    <input id="name" maxlength="16" placeholder="PLAYER 1" autocomplete="off">
-    <button class="go" id="joinBtn">TO THE STARTING LINE</button>
-  </section>
-
-  <section id="s-wait" class="box hide">
-    <h2 id="waitTitle">Waiting for start</h2>
-    <p id="waitText" class="d"></p>
-    <button class="go hide" id="startBtn">START THE RACE</button>
-  </section>
-
-  <section id="s-q" class="hide">
-    <div class="hud"><span id="qLevel"></span><span id="qNum"></span></div>
-    <div class="bar" id="bar"><i></i></div>
-    <div class="box">
-      <h2 id="qText"></h2>
-      <pre id="qCode" class="hide"></pre>
-      <div id="opts"></div>
-      <p id="qProg" class="d"></p>
-    </div>
-  </section>
-
-  <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rPause" class="y blink hide">PAUSED BY HOST</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
-    <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
-    <p id="rMe" class="y"></p>
-  </section>
-
-  <section id="s-end" class="hide">
-    <div class="box"><div class="big y blink">FINISH!</div><p id="eMe"></p></div>
-    <div class="box"><div class="stand"></div><div id="eTrack"></div></div>
-  </section>
-</div>
-
-<script>
-const $ = s => document.querySelector(s);
-const NS = 'http://www.w3.org/2000/svg';
-const adminKey = new URLSearchParams(location.search).get('admin') || '';
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let ws, token = localStorage.getItem('derbyToken') || '', name = localStorage.getItem('derbyName') || '';
-let paused = false, isAdmin = false, qIdx = -1, deadline = 0, dur = 1, timerId = null;
-const prev = {};
-
-// ---------- pixel horse (16x12 grid): b body, d dark, e eye, j jockey ----------
-const TOP = ['......jj........', '......jj...dd...', '..dd.jjj.dbbbbe.', '.dbbbbbbbbbbbbb.', 'dbbbbbbbbbbbbbb.', 'dbbbbbbbbbbbbb..', '.bbbbbbbbbbbbb..', '..bbbbbbbbbbb...'];
-const LEGS = [['..bb.......bb...', '.bb.........bb..', '.b...........b..', '.d...........d..'],
-              ['...bb.....bb....', '...bb.....bb....', '...b.......b....', '...d.......d....']];
-const COLS = [['#b5651d', '#ff2e97'], ['#f0e6d2', '#19e3ff'], ['#6b4423', '#ffd23f'], ['#3a3a4a', '#3dff7a'], ['#d9a066', '#ff8a1f']];
-function horse(i) {
-  const [body, jock] = COLS[i % 5];
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 16 12'); svg.setAttribute('class', 'sprite'); svg.setAttribute('shape-rendering', 'crispEdges');
-  LEGS.forEach((legs, f) => {
-    const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'fr f' + f);
-    TOP.concat(legs).forEach((row, y) => [...row].forEach((ch, x) => {
-      if (ch === '.') return;
-      const r = document.createElementNS(NS, 'rect');
-      r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', 1); r.setAttribute('height', 1);
-      r.setAttribute('fill', ch === 'b' ? body : ch === 'd' ? '#2a1408' : ch === 'e' ? '#fff' : jock);
-      g.appendChild(r);
-    }));
-    svg.appendChild(g);
-  });
-  return svg;
-}
-for (let i = 0; i < 5; i++) { const h = horse(i); h.style.animationDelay = (-i * 1.4) + 's'; $('#parade').appendChild(h); }
-
-function show(id) {
-  ['s-join', 's-wait', 's-q', 's-r', 's-end'].forEach(s => $('#' + s).classList.toggle('hide', s !== id));
-  $('#hero').classList.toggle('hide', id !== 's-join' && id !== 's-wait');
-  Sfx.play(id === 's-r' ? 'race' : id === 's-q' ? 'game' : 'menu');
-}
-function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-
-const Sfx = (() => {
-  let ctx = null, master = null, noiseBuf = null, muted = localStorage.getItem('derbyMute') === '1';
-  let want = null, mode = null, timer = null, step = 0, nextT = 0, autoStop = null, bgm = null, bgmFailed = false, unlocked = false, horsesEl = null, horsesFailed = false, bgmVol = 0.5, fadeT = null;
-  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
-  const SONGS = {
-    menu: { dt: 0.2,
-      lead: [76,79,84,79,76,79,84,0, 77,81,84,81,77,81,84,0, 79,83,86,83,79,83,86,0, 84,83,81,79,76,79,72,0],
-      bass: [48,0,55,0,48,0,55,0, 41,0,48,0,41,0,48,0, 43,0,50,0,43,0,50,0, 48,0,55,0,48,0,52,55] },
-    race: { dt: 0.14,
-      lead: [72,72,76,79,84,0,79,84, 86,0,84,0,79,76,79,0],
-      bass: [48,0,48,55,48,0,48,55, 43,0,43,50,43,0,43,50] }
-  };
-  function tone(type, f, t, d, v) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.value = f;
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
-  }
-  function kick(t) {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-    g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.17);
-  }
-  function hat(t, v) {
-    const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    n.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 7000;
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-    n.connect(f); f.connect(g); g.connect(master); n.start(t); n.stop(t + 0.05);
-  }
-  function schedule() {
-    const S = SONGS[mode];
-    while (nextT < ctx.currentTime + 0.3) {
-      const i = step % S.lead.length;
-      if (S.lead[i]) tone('square', hz(S.lead[i]), nextT, S.dt * 0.9, 0.05);
-      if (S.bass[i]) tone('triangle', hz(S.bass[i]), nextT, S.dt * 1.6, 0.1);
-      if (mode === 'menu') { if (i % 4 === 0) kick(nextT); if (i % 2 === 1) hat(nextT, 0.05); }
-      else { if (i % 4 !== 2) kick(nextT); if (i % 2 === 0) hat(nextT, 0.04); }
-      nextT += S.dt; step++;
-    }
-  }
-  function stopLoop() { clearInterval(timer); clearTimeout(autoStop); timer = null; mode = null; }
-  function start(name) {
-    stopLoop(); mode = name; step = 0; nextT = ctx.currentTime + 0.05;
-    timer = setInterval(schedule, 80); schedule();
-    if (name === 'race') autoStop = setTimeout(() => { if (mode === 'race') { stopLoop(); want = null; } }, 11000);
-  }
-  function menuOn() {
-    if (!bgm) {
-      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = bgmVol; bgm.muted = muted;
-      bgm.addEventListener('error', () => { bgmFailed = true; if (want && unlocked) start('menu'); });
-    }
-    const p = bgm.play(); if (p && p.catch) p.catch(() => {});
-  }
-  function menuOff() { if (bgm) { bgm.pause(); try { bgm.currentTime = 0; } catch (e) {} } }
-  function horsesOn() {
-    if (!horsesEl) {
-      horsesEl = new Audio('horses.mp3'); horsesEl.volume = 0.9; horsesEl.muted = muted;
-      horsesEl.addEventListener('error', () => { horsesFailed = true; });
-    }
-    try { horsesEl.currentTime = 0; } catch (e) {}
-    const p = horsesEl.play(); if (p && p.catch) p.catch(() => {});
-  }
-  function horsesOff() { if (horsesEl) horsesEl.pause(); }
-  function setBgmVol(v) {
-    bgmVol = v;
-    if (!bgm) return;
-    clearInterval(fadeT);
-    fadeT = setInterval(() => {
-      const d = v - bgm.volume;
-      if (Math.abs(d) < 0.02) { bgm.volume = v; clearInterval(fadeT); }
-      else bgm.volume = Math.min(1, Math.max(0, bgm.volume + Math.sign(d) * 0.02));
-    }, 60);
-  }
-  function route(name) {
-    // quieter background music while a game is running
-    setBgmVol(name === 'menu' ? 0.5 : 0.3);
-    // the background music runs on every screen
-    if (!bgmFailed) { stopLoop(); menuOn(); } else if (mode !== 'menu') start('menu');
-    // horses.mp3 is layered on top while the horses run
-    if (name === 'race') { if (!horsesFailed && (!horsesEl || horsesEl.paused)) horsesOn(); }
-    else horsesOff();
-  }
-  return {
-    play(name) { want = name; if (unlocked) route(name); },
-    stop() { want = null; menuOff(); horsesOff(); stopLoop(); },
-    unlock() {
-      if (!ctx) {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
-        noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-        const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sundsgården SQL Derby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #120a2e;
+        --panel: #1d1145;
+        --pink: #ff2e97;
+        --cyan: #19e3ff;
+        --yellow: #ffd23f;
+        --green: #3dff7a;
+        --orange: #ff8a1f;
+        --ink: #f4f0ff;
+        --dim: #b9b0e8;
+        --read: "VT323", ui-monospace, Menlo, Consolas, monospace;
       }
-      if (ctx.state === 'suspended') ctx.resume();
-      unlocked = true;
-      if (want) route(want);
-    },
-    toggle() { muted = !muted; localStorage.setItem('derbyMute', muted ? '1' : '0'); if (master) master.gain.value = muted ? 0 : 0.9; if (bgm) bgm.muted = muted; if (horsesEl) horsesEl.muted = muted; return muted; },
-    isMuted() { return muted; },
-    beep(freqs) {
-      if (!ctx) return;
-      let t = ctx.currentTime;
-      freqs.forEach(f => { tone('square', f, t, 0.11, 0.06); t += 0.12; });
-    }
-  };
-})();
-['pointerup', 'click', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, () => Sfx.unlock()));
-function beep(freqs) { Sfx.beep(freqs); }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Press Start 2P", ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      body {
+        background: transparent;
+      }
+      #bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(
+          #0b0620 0,
+          #120a2e 45%,
+          #2b1055 62%,
+          #120a2e 62%
+        );
+      }
+      #bg i {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        animation: tw 3s steps(1) infinite;
+      }
+      #bg i.big {
+        width: 4px;
+        height: 4px;
+      }
+      @keyframes tw {
+        50% {
+          opacity: 0.2;
+        }
+      }
+      #bg .sun {
+        position: absolute;
+        left: 50%;
+        bottom: 38%;
+        width: min(46vw, 200px);
+        aspect-ratio: 1;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: linear-gradient(#ffd23f, #ff2e97);
+        opacity: 0.5;
+        -webkit-mask-image: repeating-linear-gradient(
+          #000 0 14px,
+          transparent 14px 18px
+        );
+        mask-image: repeating-linear-gradient(
+          #000 0 14px,
+          transparent 14px 18px
+        );
+      }
+      #bg .grid {
+        position: absolute;
+        left: -60%;
+        right: -60%;
+        bottom: 0;
+        height: 55%;
+        transform: perspective(220px) rotateX(55deg);
+        transform-origin: 50% 100%;
+        opacity: 0.5;
+        background-image:
+          linear-gradient(rgba(255, 46, 151, 0.8) 2px, transparent 2px),
+          linear-gradient(90deg, rgba(25, 227, 255, 0.8) 2px, transparent 2px);
+        background-size: 48px 32px;
+        animation: gm 1s linear infinite;
+        -webkit-mask-image: linear-gradient(transparent, #000 70%);
+        mask-image: linear-gradient(transparent, #000 70%);
+      }
+      @keyframes gm {
+        to {
+          background-position: 0 32px;
+        }
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.18) 0,
+          rgba(0, 0, 0, 0.18) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      }
+      #app {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 14px 14px 40px;
+      }
+      .logo {
+        text-align: center;
+        margin: 14px 0 4px;
+      }
+      .logo .a {
+        font-size: clamp(12px, 4vw, 18px);
+        color: var(--cyan);
+        text-shadow: 2px 2px 0 var(--pink);
+        letter-spacing: 2px;
+      }
+      .logo .b {
+        font-size: clamp(26px, 9vw, 52px);
+        line-height: 1.2;
+        color: var(--yellow);
+        margin-top: 8px;
+        text-shadow:
+          3px 3px 0 var(--pink),
+          6px 6px 0 #4a1a6b,
+          9px 9px 0 #22103f;
+      }
+      .parade {
+        position: relative;
+        height: 40px;
+        overflow: hidden;
+        margin: 14px 0 6px;
+      }
+      .parade .sprite {
+        position: absolute;
+        bottom: 0;
+        left: -50px;
+        animation: run 7s linear infinite;
+      }
+      @keyframes run {
+        to {
+          left: 100%;
+        }
+      }
+      .sub {
+        color: var(--dim);
+        text-align: center;
+        margin-bottom: 18px;
+      }
+      h2 {
+        font-size: 15px;
+        line-height: 1.5;
+        margin: 0 0 12px;
+        color: var(--cyan);
+      }
+      #qText {
+        font-family: var(--read);
+        font-size: 30px;
+        line-height: 1.2;
+        color: #fff;
+        letter-spacing: 0.5px;
+      }
+      #waitText,
+      #qProg,
+      #rSub,
+      #rMe,
+      #eMe,
+      .sub,
+      .track .nm {
+        font-family: var(--read);
+        font-size: 22px;
+        line-height: 1.3;
+      }
+      .box {
+        background: var(--panel);
+        border: 3px solid var(--cyan);
+        padding: 16px;
+        margin: 14px 0;
+        box-shadow: 5px 5px 0 var(--pink);
+      }
+      .hud {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--yellow);
+        font-size: 11px;
+      }
+      input {
+        width: 100%;
+        font: inherit;
+        font-size: 14px;
+        padding: 12px;
+        background: #000;
+        color: var(--green);
+        border: 3px solid var(--green);
+        outline: none;
+        margin: 10px 0 14px;
+      }
+      input:focus-visible,
+      button:focus-visible {
+        outline: 3px solid var(--yellow);
+        outline-offset: 2px;
+      }
+      button {
+        font: inherit;
+        font-size: 12px;
+        color: var(--ink);
+        background: #000;
+        border: 3px solid var(--yellow);
+        padding: 14px;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        margin: 8px 0;
+        line-height: 1.6;
+      }
+      button.go {
+        text-align: center;
+        color: #000;
+        background: var(--yellow);
+        font-size: 14px;
+      }
+      button.go:active,
+      button.opt:active {
+        transform: translate(2px, 2px);
+      }
+      button.opt {
+        border-color: var(--cyan);
+        font-family: var(--read);
+        font-size: 26px;
+        line-height: 1.25;
+        padding: 12px 14px;
+        letter-spacing: 0.5px;
+      }
+      button.opt .k {
+        color: var(--pink);
+        margin-right: 10px;
+      }
+      button.opt.sel {
+        background: var(--cyan);
+        color: #000;
+      }
+      button.opt.sel .k {
+        color: #000;
+      }
+      button:disabled {
+        cursor: default;
+      }
+      pre {
+        margin: 0 0 14px;
+        padding: 12px;
+        background: #000;
+        color: var(--green);
+        border-left: 5px solid var(--green);
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 17px;
+        line-height: 1.5;
+      }
+      .bar {
+        height: 12px;
+        background: #000;
+        border: 2px solid var(--dim);
+        margin: 8px 0 14px;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--green);
+        width: 100%;
+      }
+      .bar.low i {
+        background: var(--pink);
+      }
+      .big {
+        font-size: 18px;
+        line-height: 1.4;
+        margin: 6px 0;
+      }
+      .ok {
+        color: var(--green);
+      }
+      .no {
+        color: var(--pink);
+      }
+      .y {
+        color: var(--yellow);
+      }
+      .d {
+        color: var(--dim);
+      }
+      .hide {
+        display: none;
+      }
+      /* sprites and track */
+      .sprite {
+        width: 44px;
+        height: 33px;
+        display: block;
+      }
+      .fr.f0 {
+        animation: fa 0.36s steps(1, end) infinite;
+      }
+      .fr.f1 {
+        animation: fb 0.36s steps(1, end) infinite;
+      }
+      @keyframes fa {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+      @keyframes fb {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .stand {
+        height: 46px;
+        margin: -4px -4px 10px;
+        border-bottom: 4px solid #fff;
+        background:
+          radial-gradient(circle at 4px 4px, var(--pink) 3px, transparent 3.5px)
+            0 0/16px 14px,
+          radial-gradient(
+              circle at 12px 11px,
+              var(--cyan) 3px,
+              transparent 3.5px
+            )
+            0 0/16px 14px,
+          radial-gradient(
+              circle at 8px 8px,
+              var(--yellow) 2.5px,
+              transparent 3px
+            )
+            0 0/16px 14px,
+          #2a1a5e;
+        animation: bob 0.8s steps(1) infinite;
+      }
+      @keyframes bob {
+        50% {
+          background-position:
+            0 2px,
+            0 -2px,
+            0 2px,
+            0 0;
+        }
+      }
+      .track .nm {
+        color: var(--dim);
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+      }
+      .track.you .nm {
+        color: var(--yellow);
+      }
+      .lane {
+        position: relative;
+        height: 40px;
+        border-top: 3px solid #fff;
+        background: #b57a3c;
+        overflow: hidden;
+      }
+      .lane::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 7px;
+        height: 3px;
+        background: repeating-linear-gradient(
+          90deg,
+          #e8c88a 0 12px,
+          transparent 12px 28px
+        );
+        animation: scr 0.5s linear infinite;
+      }
+      @keyframes scr {
+        to {
+          background-position: -28px 0;
+        }
+      }
+      .finish {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 10px;
+        background: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 0 0/10px
+          10px;
+      }
+      .horse {
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        transition: left 1.8s steps(18, end);
+      }
+      .horse.nitro::before {
+        content: "";
+        position: absolute;
+        right: 100%;
+        top: 12px;
+        width: 6px;
+        height: 6px;
+        background: var(--orange);
+        box-shadow:
+          -8px 0 var(--yellow),
+          -16px 3px var(--pink),
+          -24px -2px var(--orange),
+          -32px 2px var(--yellow);
+        animation: bl 0.2s steps(1) infinite;
+      }
+      @keyframes bl {
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .blink {
+        animation: bl 1s steps(1) infinite;
+      }
+      /* effects */
+      #fx {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #fx .lines {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent 0 22px,
+          rgba(255, 210, 63, 0.35) 22px 25px
+        );
+        animation: ln 0.3s linear 5;
+      }
+      @keyframes ln {
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: -200px 0;
+        }
+      }
+      #fx .word {
+        position: relative;
+        font-size: clamp(28px, 12vw, 64px);
+        color: var(--yellow);
+        text-shadow:
+          4px 4px 0 var(--pink),
+          8px 8px 0 var(--orange);
+        animation: pop 1.6s steps(8) 1 forwards;
+      }
+      @keyframes pop {
+        0% {
+          transform: scale(0.2);
+        }
+        25% {
+          transform: scale(1.2);
+        }
+        60% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 0;
+        }
+      }
+      #cf {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        pointer-events: none;
+      }
+      .expl {
+        font-family: var(--read);
+        font-size: 22px;
+        line-height: 1.3;
+        color: var(--ink);
+        border-left: 4px solid var(--yellow);
+        padding-left: 10px;
+        margin: 12px 0 0;
+      }
+      #muteBtn {
+        position: fixed;
+        left: 10px;
+        bottom: 10px;
+        z-index: 55;
+        width: auto;
+        margin: 0;
+        font-size: 9px;
+        padding: 8px 10px;
+        border-color: var(--cyan);
+        color: var(--cyan);
+        background: #000;
+      }
+      #resetBtn {
+        position: fixed;
+        right: 10px;
+        bottom: 10px;
+        z-index: 55;
+        width: auto;
+        margin: 0;
+        font-size: 9px;
+        padding: 8px 10px;
+        border-color: var(--pink);
+        color: var(--pink);
+        background: #000;
+      }
+      #status {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 60;
+        background: var(--pink);
+        color: #000;
+        text-align: center;
+        padding: 6px;
+        font-size: 10px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #bg i,
+        #bg .grid,
+        .blink,
+        .stand,
+        .lane::before,
+        .parade .sprite,
+        .fr.f0,
+        .horse.nitro::before,
+        #fx .lines {
+          animation: none;
+        }
+        .horse {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bg">
+      <div class="sun"></div>
+      <div class="grid"></div>
+    </div>
+    <div id="status" class="hide">RECONNECTING...</div>
+    <button id="muteBtn">SOUND: ON</button>
+    <button id="resetBtn" class="hide">RESTART GAME</button>
+    <div id="fx"></div>
+    <canvas id="cf" class="hide"></canvas>
+    <div id="app">
+      <header id="hero">
+        <div class="logo">
+          <div class="a">SUNDSGÅRDEN</div>
+          <div class="b">SQL<br />DERBY</div>
+        </div>
+        <div class="parade" id="parade"></div>
+        <div class="sub">Answer right. Run fastest.</div>
+      </header>
 
-// ---------- effects ----------
-function nitroFx() {
-  if (reduce) return;
-  const fx = $('#fx'); fx.textContent = '';
-  fx.appendChild(el('div', 'lines')); fx.appendChild(el('div', 'word', 'NITRO!'));
-  setTimeout(() => { fx.textContent = ''; }, 1700);
-}
-function confetti() {
-  if (reduce) return;
-  const cv = $('#cf'), x = cv.getContext('2d'); cv.classList.remove('hide');
-  cv.width = innerWidth; cv.height = innerHeight;
-  const C = ['#ff2e97', '#19e3ff', '#ffd23f', '#3dff7a', '#ffffff'];
-  const P = Array.from({ length: 170 }, () => ({ x: Math.random() * cv.width, y: -Math.random() * cv.height, vx: (Math.random() - .5) * 3, vy: 2 + Math.random() * 4, s: 4 + Math.random() * 6, c: C[Math.random() * 5 | 0] }));
-  const end = Date.now() + 8000;
-  (function f() {
-    x.clearRect(0, 0, cv.width, cv.height);
-    P.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      if (p.y > cv.height && Date.now() < end - 1500) { p.y = -10; p.x = Math.random() * cv.width; }
-      x.fillStyle = p.c; x.fillRect(p.x, p.y, p.s, p.s);
-    });
-    if (Date.now() < end) requestAnimationFrame(f); else cv.classList.add('hide');
-  })();
-}
+      <section id="s-join" class="box">
+        <h2>Enter your name</h2>
+        <input
+          id="name"
+          maxlength="16"
+          placeholder="PLAYER 1"
+          autocomplete="off"
+        />
+        <button class="go" id="joinBtn">TO THE STARTING LINE</button>
+      </section>
 
-// ---------- connection ----------
-function connect() {
-  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
-  ws.onopen = () => { $('#status').classList.add('hide'); if (name) hello(); };
-  ws.onmessage = e => on(JSON.parse(e.data));
-  ws.onclose = () => { $('#status').classList.remove('hide'); setTimeout(connect, 1500); };
-}
-function tx(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
-function hello() { tx({ t: 'hi', name, token, admin: adminKey }); }
+      <section id="s-wait" class="box hide">
+        <h2 id="waitTitle">Waiting for start</h2>
+        <p id="waitText" class="d"></p>
+        <button class="go hide" id="startBtn">START THE RACE</button>
+      </section>
 
-$('#joinBtn').onclick = () => {
-  name = $('#name').value.trim() || 'PLAYER';
-  localStorage.setItem('derbyName', name);
-  beep([440, 660]); hello();
-};
-$('#name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
-const muteLabel = () => { $('#muteBtn').textContent = Sfx.isMuted() ? 'SOUND: OFF' : 'SOUND: ON'; };
-muteLabel();
-$('#muteBtn').onclick = () => { Sfx.unlock(); Sfx.toggle(); muteLabel(); };
-function setPause(on) {
-  paused = on;
-  $('#rPause').classList.toggle('hide', !on);
-  $('#pauseBtn').textContent = on ? 'CONTINUE' : 'PAUSE';
-}
-$('#pauseBtn').onclick = () => tx({ t: paused ? 'resume' : 'pause' });
-$('#resetBtn').onclick = () => { if (confirm('Restart the game? All scores will be reset and everyone goes back to the lobby.')) tx({ t: 'reset' }); };
-$('#startBtn').onclick = () => { beep([523, 659, 784]); tx({ t: 'start', key: adminKey }); };
+      <section id="s-q" class="hide">
+        <div class="hud"><span id="qLevel"></span><span id="qNum"></span></div>
+        <div class="bar" id="bar"><i></i></div>
+        <div class="box">
+          <h2 id="qText"></h2>
+          <pre id="qCode" class="hide"></pre>
+          <div id="opts"></div>
+          <p id="qProg" class="d"></p>
+        </div>
+      </section>
 
-function on(m) {
-  if (m.t === 'hello') {
-    token = m.token; isAdmin = m.admin; name = m.name;
-    localStorage.setItem('derbyToken', token);
-    $('#resetBtn').classList.toggle('hide', !isAdmin);
-  } else if (m.t === 'pause') {
-    setPause(m.on);
-  } else if (m.t === 'reset') {
-    Object.keys(prev).forEach(k => delete prev[k]);
-    $('#cf').classList.add('hide'); $('#fx').textContent = '';
-  } else if (m.t === 'full') {
-    alert('The race is full (max 50 players).');
-  } else if (m.t === 'wait') {
-    show('s-wait');
-    $('#waitTitle').textContent = m.phase === 'lobby' ? 'Waiting for start' : 'Next question coming...';
-    $('#waitText').textContent = 'Hello ' + name + '! Players at the starting line: ' + m.n + (isAdmin && m.phase === 'lobby' ? '. You are the host: start when everyone is ready.' : '');
-    $('#startBtn').classList.toggle('hide', !(isAdmin && m.phase === 'lobby'));
-  } else if (m.t === 'q') renderQ(m);
-  else if (m.t === 'prog') $('#qProg').textContent = 'Answered: ' + m.done + ' of ' + m.of;
-  else if (m.t === 'ack') beep([330]);
-  else if (m.t === 'r') renderR(m);
-  else if (m.t === 'end') renderEnd(m);
-}
+      <section id="s-r" class="hide">
+        <div class="box">
+          <div id="rHead" class="big"></div>
+          <p id="rSub" class="d"></p>
+          <p id="rExpl" class="expl hide"></p>
+          <p id="rPause" class="y blink hide">PAUSED BY HOST</p>
+          <button class="go hide" id="pauseBtn">PAUSE</button>
+        </div>
+        <div class="box">
+          <div class="stand"></div>
+          <div id="rTrack"></div>
+        </div>
+        <p id="rMe" class="y"></p>
+      </section>
 
-function renderQ(m) {
-  qIdx = m.i; show('s-q');
-  $('#qLevel').textContent = 'LEVEL ' + m.l;
-  $('#qNum').textContent = 'QUESTION ' + (m.i + 1) + '/' + m.n;
-  $('#qText').textContent = m.q;
-  const code = $('#qCode'); code.textContent = m.code; code.classList.toggle('hide', !m.code);
-  $('#qProg').textContent = 'Answered: ' + m.done + ' of ' + m.of;
-  const box = $('#opts'); box.textContent = '';
-  m.o.forEach((txt, i) => {
-    const b = el('button', 'opt');
-    b.appendChild(el('span', 'k', 'ABCD'[i])); b.appendChild(document.createTextNode(txt));
-    b.onclick = () => answer(i, b);
-    box.appendChild(b);
-  });
-  if (m.answered) [...box.children].forEach(b => b.disabled = true);
-  deadline = Date.now() + m.left; dur = m.dur;
-  clearInterval(timerId); timerId = setInterval(tickBar, 200); tickBar();
-}
-function answer(i, btn) {
-  tx({ t: 'a', i: qIdx, c: i });
-  [...$('#opts').children].forEach(b => b.disabled = true);
-  btn.classList.add('sel');
-}
-function tickBar() {
-  const f = Math.max(0, (deadline - Date.now()) / dur), bar = $('#bar');
-  bar.firstElementChild.style.width = (f * 100) + '%';
-  bar.classList.toggle('low', f < 0.2);
-  if (f <= 0) clearInterval(timerId);
-}
+      <section id="s-end" class="hide">
+        <div class="box">
+          <div class="big y blink">FINISH!</div>
+          <p id="eMe"></p>
+        </div>
+        <div class="box">
+          <div class="stand"></div>
+          <div id="eTrack"></div>
+        </div>
+      </section>
+    </div>
 
-function drawTrack(box, top, me, max, nitro) {
-  box.textContent = '';
-  const rows = top.map((p, i) => ({ k: p.name + '#' + i, n: (i + 1) + '. ' + p.name, s: p.score, you: p.you }));
-  if (me.rank > 5) rows.push({ k: 'me', n: me.rank + '. YOU', s: me.score, you: true });
-  rows.forEach((r, i) => {
-    const t = el('div', 'track' + (r.you ? ' you' : ''));
-    const nm = el('div', 'nm'); nm.appendChild(el('span', '', r.n)); nm.appendChild(el('span', '', String(r.s)));
-    const lane = el('div', 'lane'), h = el('div', 'horse' + (r.you && nitro ? ' nitro' : ''));
-    h.appendChild(horse(i)); lane.appendChild(h); lane.appendChild(el('div', 'finish'));
-    t.appendChild(nm); t.appendChild(lane); box.appendChild(t);
-    const pos = f => 'calc((100% - 56px) * ' + f + ')';
-    h.style.left = pos(prev[r.k] || 0);
-    const f = Math.min(1, r.s / max);
-    requestAnimationFrame(() => requestAnimationFrame(() => { h.style.left = pos(f); }));
-    prev[r.k] = f;
-  });
-}
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const NS = "http://www.w3.org/2000/svg";
+      const adminKey = new URLSearchParams(location.search).get("admin") || "";
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let ws,
+        token = localStorage.getItem("derbyToken") || "",
+        name = localStorage.getItem("derbyName") || "";
+      let paused = false,
+        isAdmin = false,
+        qIdx = -1,
+        deadline = 0,
+        dur = 1,
+        timerId = null;
+      const prev = {};
 
-function renderR(m) {
-  clearInterval(timerId); show('s-r');
-  const me = m.me, h = $('#rHead'), nitro = me.ok && me.streak >= 3;
-  h.className = 'big ' + (me.ok ? 'ok' : 'no');
-  h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.answered ? 'WRONG!' : "TIME'S UP");
-  $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  NITRO! ' + me.streak + ' in a row' : '');
-  const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
-  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
-  drawTrack($('#rTrack'), m.top, me, m.max, nitro);
-  $('#rMe').textContent = 'You are in place ' + me.rank + ' of ' + m.total + ' with ' + me.score + ' points';
-  beep(me.ok ? [523, 784] : [196, 147]);
-  if (nitro) nitroFx();
-}
+      // ---------- pixel horse (16x12 grid): b body, d dark, e eye, j jockey ----------
+      const TOP = [
+        "......jj........",
+        "......jj...dd...",
+        "..dd.jjj.dbbbbe.",
+        ".dbbbbbbbbbbbbb.",
+        "dbbbbbbbbbbbbbb.",
+        "dbbbbbbbbbbbbb..",
+        ".bbbbbbbbbbbbb..",
+        "..bbbbbbbbbbb...",
+      ];
+      const LEGS = [
+        [
+          "..bb.......bb...",
+          ".bb.........bb..",
+          ".b...........b..",
+          ".d...........d..",
+        ],
+        [
+          "...bb.....bb....",
+          "...bb.....bb....",
+          "...b.......b....",
+          "...d.......d....",
+        ],
+      ];
+      const COLS = [
+        ["#b5651d", "#ff2e97"],
+        ["#f0e6d2", "#19e3ff"],
+        ["#6b4423", "#ffd23f"],
+        ["#3a3a4a", "#3dff7a"],
+        ["#d9a066", "#ff8a1f"],
+      ];
+      function horse(i) {
+        const [body, jock] = COLS[i % 5];
+        const svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("viewBox", "0 0 16 12");
+        svg.setAttribute("class", "sprite");
+        svg.setAttribute("shape-rendering", "crispEdges");
+        LEGS.forEach((legs, f) => {
+          const g = document.createElementNS(NS, "g");
+          g.setAttribute("class", "fr f" + f);
+          TOP.concat(legs).forEach((row, y) =>
+            [...row].forEach((ch, x) => {
+              if (ch === ".") return;
+              const r = document.createElementNS(NS, "rect");
+              r.setAttribute("x", x);
+              r.setAttribute("y", y);
+              r.setAttribute("width", 1);
+              r.setAttribute("height", 1);
+              r.setAttribute(
+                "fill",
+                ch === "b"
+                  ? body
+                  : ch === "d"
+                    ? "#2a1408"
+                    : ch === "e"
+                      ? "#fff"
+                      : jock,
+              );
+              g.appendChild(r);
+            }),
+          );
+          svg.appendChild(g);
+        });
+        return svg;
+      }
+      for (let i = 0; i < 5; i++) {
+        const h = horse(i);
+        h.style.animationDelay = -i * 1.4 + "s";
+        $("#parade").appendChild(h);
+      }
 
-function renderEnd(m) {
-  clearInterval(timerId); show('s-end');
-  $('#eMe').textContent = 'You finished in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points. Thanks for racing!';
-  drawTrack($('#eTrack'), m.top, m.me, m.max, false);
-  beep([523, 659, 784, 1047]); confetti();
-}
+      function show(id) {
+        ["s-join", "s-wait", "s-q", "s-r", "s-end"].forEach((s) =>
+          $("#" + s).classList.toggle("hide", s !== id),
+        );
+        $("#hero").classList.toggle("hide", id !== "s-join" && id !== "s-wait");
+        Sfx.play(id === "s-r" ? "race" : id === "s-q" ? "game" : "menu");
+      }
+      function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+      }
 
-(function () {
-  const bg = $('#bg'), cols = ['#fff', '#19e3ff', '#ffd23f', '#ff2e97'];
-  for (let i = 0; i < 70; i++) {
-    const st = document.createElement('i');
-    st.style.cssText = 'left:' + Math.random() * 100 + '%;top:' + Math.random() * 60 + '%;background:' + cols[Math.random() * 4 | 0] + ';animation-delay:' + (-Math.random() * 3) + 's';
-    if (Math.random() < .2) st.className = 'big';
-    bg.appendChild(st);
-  }
-})();
+      const Sfx = (() => {
+        let ctx = null,
+          master = null,
+          noiseBuf = null,
+          muted = localStorage.getItem("derbyMute") === "1";
+        let want = null,
+          mode = null,
+          timer = null,
+          step = 0,
+          nextT = 0,
+          autoStop = null,
+          bgm = null,
+          bgmFailed = false,
+          unlocked = false,
+          horsesEl = null,
+          horsesFailed = false,
+          bgmVol = 0.5,
+          fadeT = null;
+        const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+        const SONGS = {
+          menu: {
+            dt: 0.2,
+            lead: [
+              76, 79, 84, 79, 76, 79, 84, 0, 77, 81, 84, 81, 77, 81, 84, 0, 79,
+              83, 86, 83, 79, 83, 86, 0, 84, 83, 81, 79, 76, 79, 72, 0,
+            ],
+            bass: [
+              48, 0, 55, 0, 48, 0, 55, 0, 41, 0, 48, 0, 41, 0, 48, 0, 43, 0, 50,
+              0, 43, 0, 50, 0, 48, 0, 55, 0, 48, 0, 52, 55,
+            ],
+          },
+          race: {
+            dt: 0.14,
+            lead: [72, 72, 76, 79, 84, 0, 79, 84, 86, 0, 84, 0, 79, 76, 79, 0],
+            bass: [48, 0, 48, 55, 48, 0, 48, 55, 43, 0, 43, 50, 43, 0, 43, 50],
+          },
+        };
+        function tone(type, f, t, d, v) {
+          const o = ctx.createOscillator(),
+            g = ctx.createGain();
+          o.type = type;
+          o.frequency.value = f;
+          g.gain.setValueAtTime(v, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+          o.connect(g);
+          g.connect(master);
+          o.start(t);
+          o.stop(t + d + 0.02);
+        }
+        function kick(t) {
+          const o = ctx.createOscillator(),
+            g = ctx.createGain();
+          o.frequency.setValueAtTime(140, t);
+          o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+          g.gain.setValueAtTime(0.25, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+          o.connect(g);
+          g.connect(master);
+          o.start(t);
+          o.stop(t + 0.17);
+        }
+        function hat(t, v) {
+          const n = ctx.createBufferSource(),
+            f = ctx.createBiquadFilter(),
+            g = ctx.createGain();
+          n.buffer = noiseBuf;
+          f.type = "highpass";
+          f.frequency.value = 7000;
+          g.gain.setValueAtTime(v, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+          n.connect(f);
+          f.connect(g);
+          g.connect(master);
+          n.start(t);
+          n.stop(t + 0.05);
+        }
+        function schedule() {
+          const S = SONGS[mode];
+          while (nextT < ctx.currentTime + 0.3) {
+            const i = step % S.lead.length;
+            if (S.lead[i])
+              tone("square", hz(S.lead[i]), nextT, S.dt * 0.9, 0.05);
+            if (S.bass[i])
+              tone("triangle", hz(S.bass[i]), nextT, S.dt * 1.6, 0.1);
+            if (mode === "menu") {
+              if (i % 4 === 0) kick(nextT);
+              if (i % 2 === 1) hat(nextT, 0.05);
+            } else {
+              if (i % 4 !== 2) kick(nextT);
+              if (i % 2 === 0) hat(nextT, 0.04);
+            }
+            nextT += S.dt;
+            step++;
+          }
+        }
+        function stopLoop() {
+          clearInterval(timer);
+          clearTimeout(autoStop);
+          timer = null;
+          mode = null;
+        }
+        function start(name) {
+          stopLoop();
+          mode = name;
+          step = 0;
+          nextT = ctx.currentTime + 0.05;
+          timer = setInterval(schedule, 80);
+          schedule();
+          if (name === "race")
+            autoStop = setTimeout(() => {
+              if (mode === "race") {
+                stopLoop();
+                want = null;
+              }
+            }, 11000);
+        }
+        function menuOn() {
+          if (!bgm) {
+            bgm = new Audio("intro.mp3");
+            bgm.loop = true;
+            bgm.volume = bgmVol;
+            bgm.muted = muted;
+            bgm.addEventListener("error", () => {
+              bgmFailed = true;
+              if (want && unlocked) start("menu");
+            });
+          }
+          const p = bgm.play();
+          if (p && p.catch) p.catch(() => {});
+        }
+        function menuOff() {
+          if (bgm) {
+            bgm.pause();
+            try {
+              bgm.currentTime = 0;
+            } catch (e) {}
+          }
+        }
+        function horsesOn() {
+          if (!horsesEl) {
+            horsesEl = new Audio("horses.mp3");
+            horsesEl.volume = 0.5;
+            horsesEl.muted = muted;
+            horsesEl.addEventListener("error", () => {
+              horsesFailed = true;
+            });
+          }
+          try {
+            horsesEl.currentTime = 0;
+          } catch (e) {}
+          const p = horsesEl.play();
+          if (p && p.catch) p.catch(() => {});
+        }
+        function horsesOff() {
+          if (horsesEl) horsesEl.pause();
+        }
+        function setBgmVol(v) {
+          bgmVol = v;
+          if (!bgm) return;
+          clearInterval(fadeT);
+          fadeT = setInterval(() => {
+            const d = v - bgm.volume;
+            if (Math.abs(d) < 0.02) {
+              bgm.volume = v;
+              clearInterval(fadeT);
+            } else
+              bgm.volume = Math.min(
+                1,
+                Math.max(0, bgm.volume + Math.sign(d) * 0.02),
+              );
+          }, 60);
+        }
+        function route(name) {
+          // quieter background music while a game is running
+          setBgmVol(name === "menu" ? 0.5 : 0.3);
+          // the background music runs on every screen
+          if (!bgmFailed) {
+            stopLoop();
+            menuOn();
+          } else if (mode !== "menu") start("menu");
+          // horses.mp3 is layered on top while the horses run
+          if (name === "race") {
+            if (!horsesFailed && (!horsesEl || horsesEl.paused)) horsesOn();
+          } else horsesOff();
+        }
+        return {
+          play(name) {
+            want = name;
+            if (unlocked) route(name);
+          },
+          stop() {
+            want = null;
+            menuOff();
+            horsesOff();
+            stopLoop();
+          },
+          unlock() {
+            if (!ctx) {
+              ctx = new (window.AudioContext || window.webkitAudioContext)();
+              master = ctx.createGain();
+              master.gain.value = muted ? 0 : 0.9;
+              master.connect(ctx.destination);
+              noiseBuf = ctx.createBuffer(
+                1,
+                ctx.sampleRate * 0.1,
+                ctx.sampleRate,
+              );
+              const d = noiseBuf.getChannelData(0);
+              for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+            if (ctx.state === "suspended") ctx.resume();
+            unlocked = true;
+            if (want) route(want);
+          },
+          toggle() {
+            muted = !muted;
+            localStorage.setItem("derbyMute", muted ? "1" : "0");
+            if (master) master.gain.value = muted ? 0 : 0.9;
+            if (bgm) bgm.muted = muted;
+            if (horsesEl) horsesEl.muted = muted;
+            return muted;
+          },
+          isMuted() {
+            return muted;
+          },
+          beep(freqs) {
+            if (!ctx) return;
+            let t = ctx.currentTime;
+            freqs.forEach((f) => {
+              tone("square", f, t, 0.11, 0.06);
+              t += 0.12;
+            });
+          },
+        };
+      })();
+      ["pointerup", "click", "touchend", "keydown"].forEach((ev) =>
+        addEventListener(ev, () => Sfx.unlock()),
+      );
+      function beep(freqs) {
+        Sfx.beep(freqs);
+      }
 
-show('s-join');
-if (name) $('#name').value = name;
-connect();
-</script>
-</body>
+      // ---------- effects ----------
+      function nitroFx() {
+        if (reduce) return;
+        const fx = $("#fx");
+        fx.textContent = "";
+        fx.appendChild(el("div", "lines"));
+        fx.appendChild(el("div", "word", "NITRO!"));
+        setTimeout(() => {
+          fx.textContent = "";
+        }, 1700);
+      }
+      function confetti() {
+        if (reduce) return;
+        const cv = $("#cf"),
+          x = cv.getContext("2d");
+        cv.classList.remove("hide");
+        cv.width = innerWidth;
+        cv.height = innerHeight;
+        const C = ["#ff2e97", "#19e3ff", "#ffd23f", "#3dff7a", "#ffffff"];
+        const P = Array.from({ length: 170 }, () => ({
+          x: Math.random() * cv.width,
+          y: -Math.random() * cv.height,
+          vx: (Math.random() - 0.5) * 3,
+          vy: 2 + Math.random() * 4,
+          s: 4 + Math.random() * 6,
+          c: C[(Math.random() * 5) | 0],
+        }));
+        const end = Date.now() + 8000;
+        (function f() {
+          x.clearRect(0, 0, cv.width, cv.height);
+          P.forEach((p) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.y > cv.height && Date.now() < end - 1500) {
+              p.y = -10;
+              p.x = Math.random() * cv.width;
+            }
+            x.fillStyle = p.c;
+            x.fillRect(p.x, p.y, p.s, p.s);
+          });
+          if (Date.now() < end) requestAnimationFrame(f);
+          else cv.classList.add("hide");
+        })();
+      }
+
+      // ---------- connection ----------
+      function connect() {
+        ws = new WebSocket(
+          (location.protocol === "https:" ? "wss://" : "ws://") + location.host,
+        );
+        ws.onopen = () => {
+          $("#status").classList.add("hide");
+          if (name) hello();
+        };
+        ws.onmessage = (e) => on(JSON.parse(e.data));
+        ws.onclose = () => {
+          $("#status").classList.remove("hide");
+          setTimeout(connect, 1500);
+        };
+      }
+      function tx(o) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify(o));
+      }
+      function hello() {
+        tx({ t: "hi", name, token, admin: adminKey });
+      }
+
+      $("#joinBtn").onclick = () => {
+        name = $("#name").value.trim() || "PLAYER";
+        localStorage.setItem("derbyName", name);
+        beep([440, 660]);
+        hello();
+      };
+      $("#name").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("#joinBtn").click();
+      });
+      const muteLabel = () => {
+        $("#muteBtn").textContent = Sfx.isMuted() ? "SOUND: OFF" : "SOUND: ON";
+      };
+      muteLabel();
+      $("#muteBtn").onclick = () => {
+        Sfx.unlock();
+        Sfx.toggle();
+        muteLabel();
+      };
+      function setPause(on) {
+        paused = on;
+        $("#rPause").classList.toggle("hide", !on);
+        $("#pauseBtn").textContent = on ? "CONTINUE" : "PAUSE";
+      }
+      $("#pauseBtn").onclick = () => tx({ t: paused ? "resume" : "pause" });
+      $("#resetBtn").onclick = () => {
+        if (
+          confirm(
+            "Restart the game? All scores will be reset and everyone goes back to the lobby.",
+          )
+        )
+          tx({ t: "reset" });
+      };
+      $("#startBtn").onclick = () => {
+        beep([523, 659, 784]);
+        tx({ t: "start", key: adminKey });
+      };
+
+      function on(m) {
+        if (m.t === "hello") {
+          token = m.token;
+          isAdmin = m.admin;
+          name = m.name;
+          localStorage.setItem("derbyToken", token);
+          $("#resetBtn").classList.toggle("hide", !isAdmin);
+        } else if (m.t === "pause") {
+          setPause(m.on);
+        } else if (m.t === "reset") {
+          Object.keys(prev).forEach((k) => delete prev[k]);
+          $("#cf").classList.add("hide");
+          $("#fx").textContent = "";
+        } else if (m.t === "full") {
+          alert("The race is full (max 50 players).");
+        } else if (m.t === "wait") {
+          show("s-wait");
+          $("#waitTitle").textContent =
+            m.phase === "lobby"
+              ? "Waiting for start"
+              : "Next question coming...";
+          $("#waitText").textContent =
+            "Hello " +
+            name +
+            "! Players at the starting line: " +
+            m.n +
+            (isAdmin && m.phase === "lobby"
+              ? ". You are the host: start when everyone is ready."
+              : "");
+          $("#startBtn").classList.toggle(
+            "hide",
+            !(isAdmin && m.phase === "lobby"),
+          );
+        } else if (m.t === "q") renderQ(m);
+        else if (m.t === "prog")
+          $("#qProg").textContent = "Answered: " + m.done + " of " + m.of;
+        else if (m.t === "ack") beep([330]);
+        else if (m.t === "r") renderR(m);
+        else if (m.t === "end") renderEnd(m);
+      }
+
+      function renderQ(m) {
+        qIdx = m.i;
+        show("s-q");
+        $("#qLevel").textContent = "LEVEL " + m.l;
+        $("#qNum").textContent = "QUESTION " + (m.i + 1) + "/" + m.n;
+        $("#qText").textContent = m.q;
+        const code = $("#qCode");
+        code.textContent = m.code;
+        code.classList.toggle("hide", !m.code);
+        $("#qProg").textContent = "Answered: " + m.done + " of " + m.of;
+        const box = $("#opts");
+        box.textContent = "";
+        m.o.forEach((txt, i) => {
+          const b = el("button", "opt");
+          b.appendChild(el("span", "k", "ABCD"[i]));
+          b.appendChild(document.createTextNode(txt));
+          b.onclick = () => answer(i, b);
+          box.appendChild(b);
+        });
+        if (m.answered) [...box.children].forEach((b) => (b.disabled = true));
+        deadline = Date.now() + m.left;
+        dur = m.dur;
+        clearInterval(timerId);
+        timerId = setInterval(tickBar, 200);
+        tickBar();
+      }
+      function answer(i, btn) {
+        tx({ t: "a", i: qIdx, c: i });
+        [...$("#opts").children].forEach((b) => (b.disabled = true));
+        btn.classList.add("sel");
+      }
+      function tickBar() {
+        const f = Math.max(0, (deadline - Date.now()) / dur),
+          bar = $("#bar");
+        bar.firstElementChild.style.width = f * 100 + "%";
+        bar.classList.toggle("low", f < 0.2);
+        if (f <= 0) clearInterval(timerId);
+      }
+
+      function drawTrack(box, top, me, max, nitro) {
+        box.textContent = "";
+        const rows = top.map((p, i) => ({
+          k: p.name + "#" + i,
+          n: i + 1 + ". " + p.name,
+          s: p.score,
+          you: p.you,
+        }));
+        if (me.rank > 5)
+          rows.push({ k: "me", n: me.rank + ". YOU", s: me.score, you: true });
+        rows.forEach((r, i) => {
+          const t = el("div", "track" + (r.you ? " you" : ""));
+          const nm = el("div", "nm");
+          nm.appendChild(el("span", "", r.n));
+          nm.appendChild(el("span", "", String(r.s)));
+          const lane = el("div", "lane"),
+            h = el("div", "horse" + (r.you && nitro ? " nitro" : ""));
+          h.appendChild(horse(i));
+          lane.appendChild(h);
+          lane.appendChild(el("div", "finish"));
+          t.appendChild(nm);
+          t.appendChild(lane);
+          box.appendChild(t);
+          const pos = (f) => "calc((100% - 56px) * " + f + ")";
+          h.style.left = pos(prev[r.k] || 0);
+          const f = Math.min(1, r.s / max);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              h.style.left = pos(f);
+            }),
+          );
+          prev[r.k] = f;
+        });
+      }
+
+      function renderR(m) {
+        clearInterval(timerId);
+        show("s-r");
+        const me = m.me,
+          h = $("#rHead"),
+          nitro = me.ok && me.streak >= 3;
+        h.className = "big " + (me.ok ? "ok" : "no");
+        h.textContent = me.ok
+          ? "RIGHT! +" + me.delta
+          : me.answered
+            ? "WRONG!"
+            : "TIME'S UP";
+        $("#rSub").textContent =
+          "Correct answer: " +
+          m.right +
+          (nitro ? "  |  NITRO! " + me.streak + " in a row" : "");
+        const ex = $("#rExpl");
+        ex.textContent = m.e || "";
+        ex.classList.toggle("hide", !m.e);
+        setPause(!!m.paused);
+        $("#pauseBtn").classList.toggle("hide", !isAdmin);
+        drawTrack($("#rTrack"), m.top, me, m.max, nitro);
+        $("#rMe").textContent =
+          "You are in place " +
+          me.rank +
+          " of " +
+          m.total +
+          " with " +
+          me.score +
+          " points";
+        beep(me.ok ? [523, 784] : [196, 147]);
+        if (nitro) nitroFx();
+      }
+
+      function renderEnd(m) {
+        clearInterval(timerId);
+        show("s-end");
+        $("#eMe").textContent =
+          "You finished in place " +
+          m.me.rank +
+          " of " +
+          m.total +
+          " with " +
+          m.me.score +
+          " points. Thanks for racing!";
+        drawTrack($("#eTrack"), m.top, m.me, m.max, false);
+        beep([523, 659, 784, 1047]);
+        confetti();
+      }
+
+      (function () {
+        const bg = $("#bg"),
+          cols = ["#fff", "#19e3ff", "#ffd23f", "#ff2e97"];
+        for (let i = 0; i < 70; i++) {
+          const st = document.createElement("i");
+          st.style.cssText =
+            "left:" +
+            Math.random() * 100 +
+            "%;top:" +
+            Math.random() * 60 +
+            "%;background:" +
+            cols[(Math.random() * 4) | 0] +
+            ";animation-delay:" +
+            -Math.random() * 3 +
+            "s";
+          if (Math.random() < 0.2) st.className = "big";
+          bg.appendChild(st);
+        }
+      })();
+
+      show("s-join");
+      if (name) $("#name").value = name;
+      connect();
+    </script>
+  </body>
 </html>
