@@ -9,7 +9,28 @@ const TIMES = [0, 45, 60, 75, 90, 90]; // sekunder per nivå
 const MAXSCORE = Q.reduce((s, q) => s + 100 * q.l + 100, 0);
 const html = fs.readFileSync(path.join(__dirname, 'index.html'));
 
+const MP3 = path.join(__dirname, 'intro.mp3');
+function serveMp3(req, res) {
+  fs.stat(MP3, (err, st) => {
+    if (err) { res.writeHead(404); res.end('intro.mp3 not found'); return; }
+    const size = st.size;
+    const h = { 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=3600' };
+    const r = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+    if (r && (r[1] || r[2])) {
+      let start = r[1] ? parseInt(r[1], 10) : Math.max(0, size - parseInt(r[2], 10));
+      let end = r[1] && r[2] ? Math.min(parseInt(r[2], 10), size - 1) : size - 1;
+      if (start > end || start >= size) { res.writeHead(416, { 'Content-Range': 'bytes */' + size }); res.end(); return; }
+      res.writeHead(206, Object.assign(h, { 'Content-Range': 'bytes ' + start + '-' + end + '/' + size, 'Content-Length': end - start + 1 }));
+      fs.createReadStream(MP3, { start, end }).pipe(res);
+    } else {
+      res.writeHead(200, Object.assign(h, { 'Content-Length': size }));
+      fs.createReadStream(MP3).pipe(res);
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
+  if (req.url.split('?')[0] === '/intro.mp3') { serveMp3(req, res); return; }
   if (req.url === '/health') { res.end('ok'); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);

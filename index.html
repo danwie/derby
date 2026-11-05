@@ -173,7 +173,7 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 
 const Sfx = (() => {
   let ctx = null, master = null, noiseBuf = null, muted = localStorage.getItem('derbyMute') === '1';
-  let want = null, mode = null, timer = null, step = 0, nextT = 0, autoStop = null;
+  let want = null, mode = null, timer = null, step = 0, nextT = 0, autoStop = null, bgm = null, bgmFailed = false, unlocked = false;
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
   const SONGS = {
     menu: { dt: 0.2,
@@ -218,9 +218,21 @@ const Sfx = (() => {
     timer = setInterval(schedule, 80); schedule();
     if (name === 'race') autoStop = setTimeout(() => { if (mode === 'race') { stopLoop(); want = null; } }, 7000);
   }
+  function menuOn() {
+    if (!bgm) {
+      bgm = new Audio('intro.mp3'); bgm.loop = true; bgm.volume = 0.8; bgm.muted = muted;
+      bgm.addEventListener('error', () => { bgmFailed = true; if (want === 'menu' && unlocked) start('menu'); });
+    }
+    const p = bgm.play(); if (p && p.catch) p.catch(() => {});
+  }
+  function menuOff() { if (bgm) { bgm.pause(); try { bgm.currentTime = 0; } catch (e) {} } }
+  function route(name) {
+    if (name === 'menu') { if (!bgmFailed) { stopLoop(); menuOn(); } else if (mode !== 'menu') start('menu'); }
+    else { menuOff(); if (mode !== name) start(name); }
+  }
   return {
-    play(name) { want = name; if (ctx && mode !== name) start(name); },
-    stop() { want = null; stopLoop(); },
+    play(name) { want = name; if (unlocked) route(name); },
+    stop() { want = null; menuOff(); stopLoop(); },
     unlock() {
       if (!ctx) {
         ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -229,9 +241,10 @@ const Sfx = (() => {
         const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       }
       if (ctx.state === 'suspended') ctx.resume();
-      if (want && mode !== want) start(want);
+      unlocked = true;
+      if (want) route(want);
     },
-    toggle() { muted = !muted; localStorage.setItem('derbyMute', muted ? '1' : '0'); if (master) master.gain.value = muted ? 0 : 0.9; return muted; },
+    toggle() { muted = !muted; localStorage.setItem('derbyMute', muted ? '1' : '0'); if (master) master.gain.value = muted ? 0 : 0.9; if (bgm) bgm.muted = muted; return muted; },
     isMuted() { return muted; },
     beep(freqs) {
       if (!ctx) return;
@@ -240,7 +253,7 @@ const Sfx = (() => {
     }
   };
 })();
-['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => Sfx.unlock()));
+['pointerup', 'click', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, () => Sfx.unlock()));
 function beep(freqs) { Sfx.beep(freqs); }
 
 // ---------- effects ----------
