@@ -94,7 +94,7 @@ function handle(c, m) {
     if (!p) {
       if (live().length >= MAX_PLAYERS) { send(c, { t: 'full' }); return; }
       const name = String(m.name || '').trim().slice(0, 16) || 'Player';
-      p = { token: crypto.randomBytes(8).toString('hex'), name, score: 0, streak: 0, ans: null, t: 0, delta: 0, ok: false, c: null };
+      p = { token: crypto.randomBytes(8).toString('hex'), name, score: 0, streak: 0, pos: 0, ans: null, t: 0, delta: 0, ok: false, c: null };
       players.set(p.token, p);
     }
     p.c = c; c.player = p; c.admin = m.admin === ADMIN;
@@ -129,7 +129,7 @@ function reset() {
   phase = 'lobby'; qi = -1; cur = null;
   players.forEach((p, k) => {
     if (!p.c) { players.delete(k); return; }
-    p.score = 0; p.streak = 0; p.ans = null; p.t = 0; p.delta = 0; p.ok = false;
+    p.score = 0; p.streak = 0; p.pos = 0; p.ans = null; p.t = 0; p.delta = 0; p.ok = false;
   });
   live().forEach(p => send(p.c, { t: 'reset' }));
   pulse();
@@ -180,8 +180,8 @@ function progress() {
 function board(p) {
   const ranked = [...players.values()].sort((a, b) => b.score - a.score);
   return {
-    top: ranked.slice(0, 5).map(x => ({ name: x.name, score: x.score, you: x === p })),
-    me: { rank: ranked.indexOf(p) + 1, score: p.score, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
+    top: ranked.slice(0, 5).map(x => ({ name: x.name, score: x.score, pos: x.pos, you: x === p })),
+    me: { rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
     total: ranked.length, max: MAXSCORE, prog: progress()
   };
 }
@@ -206,6 +206,17 @@ function reveal() {
       p.delta = 100 * q.l + Math.round(50 * frac) + (p.streak >= 3 ? 50 : 0);
       p.score += p.delta;
     } else p.streak = 0;
+  });
+  // Horse position (display only): moves only after a correct answer, never goes back, and no horse
+  // can pass the leading horse. A horse only gets in front by taking the lead on points.
+  const lead = Math.max(0, ...[...players.values()].map(x => x.score)), P = progress();
+  const leaders = lead > 0 ? [...players.values()].filter(x => x.score === lead) : [];
+  leaders.forEach(p => { if (p.ok) p.pos = Math.max(p.pos || 0, P); });
+  const L = leaders.length ? Math.max(...leaders.map(x => x.pos || 0)) : 0;
+  players.forEach(p => {
+    if (!p.ok || p.score === lead) return;
+    const target = P * Math.pow(p.score / lead, 0.7);
+    p.pos = Math.max(p.pos || 0, Math.min(target, L));
   });
   live().forEach(p => send(p.c, revealMsg(p)));
   revealTimer = setTimeout(nextQ, REVEAL_MS);

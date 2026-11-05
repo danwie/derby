@@ -408,10 +408,10 @@ function tickBar() {
   if (f <= 0) clearInterval(timerId);
 }
 
-function drawTrack(box, top, me, max, nitro, prog) {
+function drawTrack(box, top, me, max, nitro, final) {
   box.textContent = '';
-  const rows = top.map((p, i) => ({ k: p.name + '#' + i, n: (i + 1) + '. ' + p.name, s: p.score, you: p.you }));
-  if (me.rank > 5) rows.push({ k: 'me', n: me.rank + '. YOU', s: me.score, you: true });
+  const rows = top.map((p, i) => ({ k: p.name + '#' + i, n: (i + 1) + '. ' + p.name, s: p.score, pos: p.pos, you: p.you }));
+  if (me.rank > 5) rows.push({ k: 'me', n: me.rank + '. YOU', s: me.score, pos: me.pos, you: true });
   rows.forEach((r, i) => {
     const t = el('div', 'track' + (r.you ? ' you' : ''));
     const nm = el('div', 'nm'); nm.appendChild(el('span', '', r.n)); nm.appendChild(el('span', '', String(r.s)));
@@ -420,9 +420,10 @@ function drawTrack(box, top, me, max, nitro, prog) {
     t.appendChild(nm); t.appendChild(lane); box.appendChild(t);
     const pos = f => 'calc((100% - 56px) * ' + f + ')';
     h.style.left = pos(prev[r.k] || 0);
-    // leader sits at the share of the track earned so far (1 = finish after the last question); the rest keep their ratio to the leader, softened a bit so the field stays tight
-    const lead = top.length ? top[0].score : 0;
-    const f = prog === undefined ? Math.min(1, r.s / max) : (lead > 0 ? Math.min(1, prog * Math.pow(Math.min(1, r.s / lead), 0.7)) : 0);
+    // position comes from the server (moves only after a correct answer, never backwards); old score-based fallback
+    let f = r.pos !== undefined ? Math.min(1, r.pos) : Math.min(1, r.s / max);
+    // final screen: the winner(s) run the last stretch to the finish line
+    if (final && top.length && top[0].score > 0 && r.s === top[0].score) { f = 1; if (!reduce) h.style.transition = 'left 3.6s steps(36,end) .8s'; }
     requestAnimationFrame(() => requestAnimationFrame(() => { h.style.left = pos(f); }));
     prev[r.k] = f;
   });
@@ -436,7 +437,7 @@ function renderR(m) {
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  NITRO! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
   setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
-  drawTrack($('#rTrack'), m.top, me, m.max, nitro, m.prog);
+  drawTrack($('#rTrack'), m.top, me, m.max, nitro);
   $('#rMe').textContent = 'You are in place ' + me.rank + ' of ' + m.total + ' with ' + me.score + ' points';
   beep(me.ok ? [523, 784] : [196, 147]);
   if (nitro) nitroFx();
@@ -445,7 +446,7 @@ function renderR(m) {
 function renderEnd(m) {
   clearInterval(timerId); show('s-end');
   $('#eMe').textContent = 'You finished in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points. Thanks for racing!';
-  drawTrack($('#eTrack'), m.top, m.me, m.max, false, m.prog);
+  drawTrack($('#eTrack'), m.top, m.me, m.max, false, true);
   beep([523, 659, 784, 1047]); confetti();
 }
 
