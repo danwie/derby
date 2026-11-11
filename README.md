@@ -1,6 +1,6 @@
-# Sundsgården SQL Derby
+# Sundsgården SQL Grand Prix
 
-A multiplayer SQL quiz in 80s arcade style. Up to 50 players race against each other at the same time. Answer right, and your horse runs further.
+A multiplayer SQL quiz in 80s arcade style. Up to 50 players race against each other at the same time. Answer right, and your car drives further.
 
 **Try it:** https://derby-07v1.onrender.com/
 
@@ -33,9 +33,26 @@ A correct answer gives:
 
 - **Base points:** 100 × level (100 on level 1, up to 500 on level 5)
 - **Speed bonus:** 0 to 50 points, based on how much time was left
-- **Nitro bonus:** +50 for each correct answer after 3 in a row
+- **Boost bonus:** +50 for each correct answer after 3 in a row
 
 A wrong answer or no answer gives 0 points and resets your streak.
+
+## Pit Stop
+
+After every 3rd question (not after the last one) the game takes a pit stop. The names of all players roll past, slow down, and one random player is picked. Everyone gets the same show: a 3-2-1 countdown, then the event is revealed for a few seconds, and then the cars move to their new places (a car can go backwards). Nobody is picked twice until everyone has been picked.
+
+| Event | Effect |
+| ----- | ------ |
+| PERFECT PIT STOP | +50 x level points |
+| POLE POSITION | +100 x level points |
+| UNDERCUT | steals up to 50 x level points from the player just ahead |
+| DOUBLE POINTS | the points from the last answer count twice |
+| PUNCTURE | -50 x level points |
+| ENGINE FAILURE | -100 x level points |
+| 5-SECOND PENALTY | -25 x level points and the streak is lost |
+| TRACK LIMITS | the points from the last answer are cancelled and the streak is lost |
+
+About 60 % of the events are good ones. Points never go below 0.
 
 ## Good to know
 
