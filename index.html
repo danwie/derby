@@ -285,7 +285,7 @@ button.opt.rr::after{color:var(--pink)}
   </section>
 
   <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">WAITING FOR THE HOST...</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
+    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">WAITING FOR THE HOST...</p><button class="go hide" id="pauseBtn">PAUSE</button><button class="go hide" id="rdyBtn">I UNDERSTAND</button></div>
     <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
     <p id="rMe" class="y"></p>
   </section>
@@ -349,10 +349,10 @@ const Sx = (() => {
   const els = {}, timers = {};
   const get = n => { if (!els[n]) { const a = new Audio(n + '.mp3'); a.preload = 'auto'; a.addEventListener('error', () => { a.dead = true; }); els[n] = a; } return els[n]; };
   return {
-    play(n, ms, vol) {
+    play(n, ms, vol, loop) {
       if (Sfx.isSfxMuted()) return;
       const a = get(n); if (a.dead) return;
-      a.volume = vol == null ? 0.85 : vol;
+      a.volume = vol == null ? 0.85 : vol; a.loop = !!loop;
       try { a.currentTime = 0; } catch (e) {}
       const p = a.play(); if (p && p.catch) p.catch(() => {});
       clearTimeout(timers[n]); if (ms) timers[n] = setTimeout(() => a.pause(), ms);
@@ -646,7 +646,7 @@ function renderPitRes(m) {
   if (e.all) sub += '  |  Everyone else: up to ' + sign(-e.all) + ' points';
   if (!m.you && m.mine) sub += '  |  You: ' + sign(m.mine) + ' points';
   $('#rSub').textContent = sub;
-  $('#rExpl').classList.add('hide'); $('#rFast').classList.add('hide'); setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
+  $('#rExpl').classList.add('hide'); $('#rFast').classList.add('hide'); setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin); rdyInit(m);
   drawTrack($('#rTrack'), m.top, m.me, m.max, false);
   $('#rMe').textContent = placeText(m.me, m.total);
   if (e.fx === 'rain') rainOn();
@@ -655,7 +655,7 @@ function renderPitRes(m) {
 
 // ---------- podium ----------
 const podUI = { on: false, raf: 0 };
-function podiumStop() { podUI.on = false; cancelAnimationFrame(podUI.raf); }
+function podiumStop() { podUI.on = false; cancelAnimationFrame(podUI.raf); Sx.stop('fireworks'); }
 const TROPHY = ['..yyyyyyyy..', '.yyyyyyyyyy.', 'yyy.yyyy.yyy', 'y.y.yyyy.y.y', 'yyy.yyyy.yyy', '..yyyyyyyy..', '...yyyyyy...', '....yyyy....', '.....yy.....', '.....yy.....', '....yyyy....', '...yyyyyy...', '..oooooooo..'];
 function podiumStart(m) {
   podiumStop();
@@ -714,7 +714,7 @@ function podiumStart(m) {
     if (!reduce) podUI.raf = requestAnimationFrame(frame);
   }
   podUI.on = true; frame();
-  Sx.play('cheering', 9000); Sx.play('fireworks', 9000);
+  Sx.play('cheering', 9000); Sx.play('fireworks', 30000, 0.85, true);
 }
 
 // ---------- v3: answer feedback, CONTINUE, rival ----------
@@ -734,6 +734,15 @@ function revealThen(m) {
 function placeText(me, total) {
   return 'You are in place ' + me.rank + ' of ' + total + ' with ' + me.score + ' points' + (me.rival ? '  |  ' + (me.rival.score - me.score) + ' behind ' + me.rival.name : '');
 }
+
+// ---------- v4: I UNDERSTAND ----------
+function rdyUpdate(m) {
+  const b = $('#rdyBtn');
+  $('#rPause').textContent = 'WAITING FOR PLAYERS... ' + m.done + '/' + m.of;
+  b.disabled = !!m.me; b.textContent = m.me ? 'WAITING FOR OTHERS...' : 'I UNDERSTAND';
+}
+function rdyInit(m) { $('#rdyBtn').classList.toggle('hide', !m.paused); if (m.rd) rdyUpdate(m.rd); }
+$('#rdyBtn').onclick = () => { tx({ t: 'rdy' }); $('#rdyBtn').disabled = true; $('#rdyBtn').textContent = 'WAITING FOR OTHERS...'; };
 
 function show(id) {
   pitHide();
@@ -897,6 +906,7 @@ function on(m) {
   else if (m.t === 'prog') $('#qProg').textContent = 'Answered: ' + m.done + ' of ' + m.of;
   else if (m.t === 'ack') beep([330]);
   else if (m.t === 'r') revealThen(m);
+  else if (m.t === 'rdy') rdyUpdate(m);
   else if (m.t === 'pit') pitStart(m);
   else if (m.t === 'grid') gridStart(m);
   else if (m.t === 'pr') renderPitRes(m);
@@ -962,7 +972,7 @@ function renderR(m) {
   h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.answered ? 'WRONG!' : "TIME'S UP");
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  BOOST! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
-  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
+  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin); rdyInit(m);
   if (!me.ok) { m.top.forEach(x => { if (x.you && !x.fx) x.fx = 'tyre'; }); if (!me.fx) me.fx = 'tyre'; }
   drawTrack($('#rTrack'), m.top, me, m.max, nitro); reactR(m);
   $('#rMe').textContent = placeText(me, m.total);

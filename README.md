@@ -12,7 +12,7 @@ Add the host password after `?admin=`. Only the host sees the **START THE RACE**
 ## How it works
 
 1. Players open the link, enter a name (no login) and wait in the lobby.
-2. The host starts the race. After each question (and each Pit Stop) the host presses CONTINUE, so keep the host page open.
+2. The host starts the race. After each question (and each Pit Stop) the game goes on when every player has pressed I UNDERSTAND, or when the host presses CONTINUE.
 3. Everyone gets the same question at the same time. The question ends when all players have answered, or when time runs out (45 to 90 seconds, depending on level).
 4. After each question the correct answer is shown, together with the top 5 and your own position.
 5. After the last question, the final standings are shown.

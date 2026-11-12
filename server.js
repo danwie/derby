@@ -110,6 +110,9 @@ function handle(c, m) {
     pulse();
   } else if (m.t === 'start' && c.admin && phase === 'lobby') {
     startGrid();
+  } else if (m.t === 'rdy' && (phase === 'reveal' || phase === 'pitres') && c.player) {
+    c.player.rdy = true;
+    checkReady();
   } else if (m.t === 'reset' && c.admin) {
     reset();
   } else if (m.t === 'pause' && c.admin && phase === 'reveal' && !paused) {
@@ -145,6 +148,7 @@ function drop(c) {
     c.player.c = null;
     pulse();
     if (phase === 'question' && live().length > 0 && live().every(p => p.ans !== null)) reveal();
+    checkReady();
   }
 }
 
@@ -192,7 +196,7 @@ function board(p) {
 
 function revealMsg(p) {
   const q = Q[qi];
-  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused, ov: ovName, fl: fastName, fb: FAST_BONUS }, board(p));
+  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused, ov: ovName, fl: fastName, fb: FAST_BONUS, rd: rdyInfo(p) }, board(p));
 }
 
 function endMsg(p) { return Object.assign({ t: 'end' }, board(p)); }
@@ -230,7 +234,7 @@ function reveal() {
     p.pos = Math.max(p.pos || 0, Math.min(target, L));
   });
   ovName = checkLead();
-  paused = true; // the host presses CONTINUE
+  paused = true; players.forEach(p => { p.rdy = false; });
   live().forEach(p => send(p.c, revealMsg(p)));
 }
 
@@ -240,6 +244,19 @@ function afterReveal() {
 }
 
 const FAST_BONUS = 50;
+const rdyInfo = p => ({ done: live().filter(x => x.rdy).length, of: live().length, me: !!p.rdy });
+// the game goes on when every connected player has pressed I UNDERSTAND (the host can also press CONTINUE)
+function checkReady() {
+  if (phase !== 'reveal' && phase !== 'pitres') return;
+  const L = live();
+  if (L.length && L.every(p => p.rdy)) {
+    paused = false;
+    L.forEach(p => send(p.c, { t: 'pause', on: false }));
+    if (phase === 'pitres') nextQ(); else afterReveal();
+    return;
+  }
+  L.forEach(p => send(p.c, Object.assign({ t: 'rdy' }, rdyInfo(p))));
+}
 function rivalOf(ranked, p) {
   const i = ranked.indexOf(p);
   if (i < 1) return null;
@@ -314,7 +331,7 @@ function pitMsg(p) {
 }
 function pitResMsg(p) {
   return Object.assign({ t: 'pr', who: pit.p.name, you: p === pit.p, vic: pit.ev.vic ? pit.ev.vic.name : '', ev: pitEv(),
-    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName, paused }, board(p));
+    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName, paused, rd: rdyInfo(p) }, board(p));
 }
 
 function startPit() {
@@ -344,7 +361,7 @@ function finishPit() {
   settle(ch, before);
   pit.mine = new Map(); before.forEach((b, x) => pit.mine.set(x, x.score - b));
   ovName = checkLead();
-  phase = 'pitres'; paused = true; // the host presses CONTINUE
+  phase = 'pitres'; paused = true; players.forEach(x => { x.rdy = false; });
   live().forEach(x => send(x.c, pitResMsg(x)));
 }
 
