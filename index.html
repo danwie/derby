@@ -285,7 +285,7 @@ button.opt.rr::after{color:var(--pink)}
   </section>
 
   <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">WAITING FOR THE HOST...</p><button class="go hide" id="pauseBtn">PAUSE</button><button class="go hide" id="rdyBtn">I UNDERSTAND</button></div>
+    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">WAITING FOR THE HOST...</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
     <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
     <p id="rMe" class="y"></p>
   </section>
@@ -510,7 +510,7 @@ function gridHide() {
 }
 function gridStart(m) {
   pitHide();
-  const T0 = Date.now() - m.el, OUT = 5000 + m.hold;
+  const T0 = Date.now() - m.el, STEP = m.step || 1000, OUT = 5 * STEP + m.hold;
   $('#grid').classList.remove('hide'); $('#gword').classList.add('hide'); $('#gsub').textContent = 'Lights out and away we go!';
   const lamps = [...document.querySelectorAll('#lights .lc')], strip = $('#gstrip');
   lamps.forEach(l => l.classList.remove('on'));
@@ -519,7 +519,7 @@ function gridStart(m) {
   let lit = 0, out = false;
   function loop() {
     if (!gridUI.on) return;
-    const t = Date.now() - T0, n = t < OUT ? Math.min(5, Math.floor(t / 1000)) : 0;
+    const t = Date.now() - T0, n = t < OUT ? Math.min(5, Math.floor(t / STEP)) : 0;
     if (!out && n !== lit) { lit = n; lamps.forEach((l, i) => l.classList.toggle('on', i < n)); if (n) beep([330 + n * 60]); }
     if (!out && t >= OUT) {
       out = true; lamps.forEach(l => l.classList.remove('on'));
@@ -646,7 +646,7 @@ function renderPitRes(m) {
   if (e.all) sub += '  |  Everyone else: up to ' + sign(-e.all) + ' points';
   if (!m.you && m.mine) sub += '  |  You: ' + sign(m.mine) + ' points';
   $('#rSub').textContent = sub;
-  $('#rExpl').classList.add('hide'); $('#rFast').classList.add('hide'); setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin); rdyInit(m);
+  $('#rExpl').classList.add('hide'); $('#rFast').classList.add('hide'); setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   drawTrack($('#rTrack'), m.top, m.me, m.max, false);
   $('#rMe').textContent = placeText(m.me, m.total);
   if (e.fx === 'rain') rainOn();
@@ -734,15 +734,6 @@ function revealThen(m) {
 function placeText(me, total) {
   return 'You are in place ' + me.rank + ' of ' + total + ' with ' + me.score + ' points' + (me.rival ? '  |  ' + (me.rival.score - me.score) + ' behind ' + me.rival.name : '');
 }
-
-// ---------- v4: I UNDERSTAND ----------
-function rdyUpdate(m) {
-  const b = $('#rdyBtn');
-  $('#rPause').textContent = 'WAITING FOR PLAYERS... ' + m.done + '/' + m.of;
-  b.disabled = !!m.me; b.textContent = m.me ? 'WAITING FOR OTHERS...' : 'I UNDERSTAND';
-}
-function rdyInit(m) { $('#rdyBtn').classList.toggle('hide', !m.paused); if (m.rd) rdyUpdate(m.rd); }
-$('#rdyBtn').onclick = () => { tx({ t: 'rdy' }); $('#rdyBtn').disabled = true; $('#rdyBtn').textContent = 'WAITING FOR OTHERS...'; };
 
 function show(id) {
   pitHide();
@@ -906,7 +897,6 @@ function on(m) {
   else if (m.t === 'prog') $('#qProg').textContent = 'Answered: ' + m.done + ' of ' + m.of;
   else if (m.t === 'ack') beep([330]);
   else if (m.t === 'r') revealThen(m);
-  else if (m.t === 'rdy') rdyUpdate(m);
   else if (m.t === 'pit') pitStart(m);
   else if (m.t === 'grid') gridStart(m);
   else if (m.t === 'pr') renderPitRes(m);
@@ -972,7 +962,7 @@ function renderR(m) {
   h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.answered ? 'WRONG!' : "TIME'S UP");
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  BOOST! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
-  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin); rdyInit(m);
+  setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   if (!me.ok) { m.top.forEach(x => { if (x.you && !x.fx) x.fx = 'tyre'; }); if (!me.fx) me.fx = 'tyre'; }
   drawTrack($('#rTrack'), m.top, me, m.max, nitro); reactR(m);
   $('#rMe').textContent = placeText(me, m.total);

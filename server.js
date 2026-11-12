@@ -110,9 +110,6 @@ function handle(c, m) {
     pulse();
   } else if (m.t === 'start' && c.admin && phase === 'lobby') {
     startGrid();
-  } else if (m.t === 'rdy' && (phase === 'reveal' || phase === 'pitres') && c.player) {
-    c.player.rdy = true;
-    checkReady();
   } else if (m.t === 'reset' && c.admin) {
     reset();
   } else if (m.t === 'pause' && c.admin && phase === 'reveal' && !paused) {
@@ -120,7 +117,7 @@ function handle(c, m) {
     live().forEach(p => send(p.c, { t: 'pause', on: true }));
   } else if (m.t === 'resume' && c.admin && (phase === 'reveal' || phase === 'pitres') && paused) {
     live().forEach(p => send(p.c, { t: 'pause', on: false }));
-    if (phase === 'pitres') nextQ(); else afterReveal();
+    if (phase === 'pitres') startGrid(); else afterReveal();
   } else if (m.t === 'a' && phase === 'question' && c.player && c.player.ans === null && m.i === qi) {
     const k = m.c | 0;
     if (k < 0 || k > 3) return;
@@ -148,7 +145,6 @@ function drop(c) {
     c.player.c = null;
     pulse();
     if (phase === 'question' && live().length > 0 && live().every(p => p.ans !== null)) reveal();
-    checkReady();
   }
 }
 
@@ -196,7 +192,7 @@ function board(p) {
 
 function revealMsg(p) {
   const q = Q[qi];
-  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused, ov: ovName, fl: fastName, fb: FAST_BONUS, rd: rdyInfo(p) }, board(p));
+  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused, ov: ovName, fl: fastName, fb: FAST_BONUS }, board(p));
 }
 
 function endMsg(p) { return Object.assign({ t: 'end' }, board(p)); }
@@ -234,29 +230,16 @@ function reveal() {
     p.pos = Math.max(p.pos || 0, Math.min(target, L));
   });
   ovName = checkLead();
-  paused = true; players.forEach(p => { p.rdy = false; });
+  paused = true; // the host presses CONTINUE
   live().forEach(p => send(p.c, revealMsg(p)));
 }
 
 // ---------- Pit stop: ett slumpmoment efter var PIT_EVERY:e fraga ----------
 function afterReveal() {
-  if ((qi + 1) % PIT_EVERY === 0 && qi < Q.length - 1 && live().length > 0) startPit(); else nextQ();
+  if ((qi + 1) % PIT_EVERY === 0 && qi < Q.length - 1 && live().length > 0) startPit(); else startGrid();
 }
 
 const FAST_BONUS = 50;
-const rdyInfo = p => ({ done: live().filter(x => x.rdy).length, of: live().length, me: !!p.rdy });
-// the game goes on when every connected player has pressed I UNDERSTAND (the host can also press CONTINUE)
-function checkReady() {
-  if (phase !== 'reveal' && phase !== 'pitres') return;
-  const L = live();
-  if (L.length && L.every(p => p.rdy)) {
-    paused = false;
-    L.forEach(p => send(p.c, { t: 'pause', on: false }));
-    if (phase === 'pitres') nextQ(); else afterReveal();
-    return;
-  }
-  L.forEach(p => send(p.c, Object.assign({ t: 'rdy' }, rdyInfo(p))));
-}
 function rivalOf(ranked, p) {
   const i = ranked.indexOf(p);
   if (i < 1) return null;
@@ -331,7 +314,7 @@ function pitMsg(p) {
 }
 function pitResMsg(p) {
   return Object.assign({ t: 'pr', who: pit.p.name, you: p === pit.p, vic: pit.ev.vic ? pit.ev.vic.name : '', ev: pitEv(),
-    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName, paused, rd: rdyInfo(p) }, board(p));
+    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName, paused }, board(p));
 }
 
 function startPit() {
@@ -361,17 +344,20 @@ function finishPit() {
   settle(ch, before);
   pit.mine = new Map(); before.forEach((b, x) => pit.mine.set(x, x.score - b));
   ovName = checkLead();
-  phase = 'pitres'; paused = true; players.forEach(x => { x.rdy = false; });
+  phase = 'pitres'; paused = true; // the host presses CONTINUE
   live().forEach(x => send(x.c, pitResMsg(x)));
 }
 
 // ---------- Startljus fore forsta fragan ----------
-function gridMsg() { return { t: 'grid', el: Date.now() - grid.start, hold: grid.hold }; }
+function gridMsg() { return { t: 'grid', el: Date.now() - grid.start, hold: grid.hold, step: grid.step }; }
+// start lights before every question (a longer show before the first one)
 function startGrid() {
-  grid = { start: Date.now(), hold: 1000 + (Math.random() * 1500 | 0) };
+  if (qi + 1 >= Q.length) { nextQ(); return; }
+  const first = qi < 0;
+  grid = { start: Date.now(), step: first ? 1000 : 500, hold: (first ? 1000 : 400) + (Math.random() * (first ? 1500 : 600) | 0), go: first ? 1500 : 1000 };
   phase = 'grid';
   live().forEach(p => send(p.c, gridMsg()));
-  gridTimer = setTimeout(nextQ, 5000 + grid.hold + 1500);
+  gridTimer = setTimeout(nextQ, 5 * grid.step + grid.hold + grid.go);
 }
 
 server.listen(PORT, () => console.log('Sundsgården SQL Grand Prix running on port ' + PORT));

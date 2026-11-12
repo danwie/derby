@@ -12,7 +12,7 @@ Add the host password after `?admin=`. Only the host sees the **START THE RACE**
 ## How it works
 
 1. Players open the link, enter a name (no login) and wait in the lobby.
-2. The host starts the race. After each question (and each Pit Stop) the game goes on when every player has pressed I UNDERSTAND, or when the host presses CONTINUE.
+2. The host starts the race. After each question (and each Pit Stop) the host presses CONTINUE, so keep the host page open.
 3. Everyone gets the same question at the same time. The question ends when all players have answered, or when time runs out (45 to 90 seconds, depending on level).
 4. After each question the correct answer is shown, together with the top 5 and your own position.
 5. After the last question, the final standings are shown.
@@ -60,7 +60,7 @@ About 60 % of the events are good ones. Points never go below 0.
 
 ## More Grand Prix
 
-- **Start lights:** when the host starts the race, five red lights come on one by one, go out after a random pause, and the cars launch.
+- **Start lights:** before every question, five red lights come on one by one, go out after a random pause, and the cars launch (a longer show before the first question).
 - **Fastest lap:** the fastest correct answer on each question gets +50 points and a purple marker.
 - **Overtake:** when someone takes the lead on points, a banner shows, the crowd cheers and waves flags.
 - **Podium:** the final screen shows a podium with the top 3, a trophy, champagne and fireworks.
