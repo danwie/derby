@@ -30,9 +30,53 @@ function serveMp3(req, res, file) {
   });
 }
 
+// ---------- Dold granskningssida: /review?admin=LOSENORD ----------
+const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function reviewPage() {
+  const L = 'ABCD', problems = [], perLevel = {};
+  const cards = Q.map((q, i) => {
+    const n = i + 1, opts = Array.isArray(q.o) ? q.o : [];
+    perLevel[q.l] = (perLevel[q.l] || 0) + 1;
+    if (opts.length !== 4) problems.push('Question ' + n + ' has ' + opts.length + ' options (expected 4)');
+    if (!(q.a >= 0 && q.a < opts.length)) problems.push('Question ' + n + ': the correct answer is not one of the options');
+    if (new Set(opts).size !== opts.length) problems.push('Question ' + n + ': two options are identical');
+    if (!q.e) problems.push('Question ' + n + ' has no explanation');
+    return '<article id="q' + n + '"><h2>Question ' + n + ' <span>Level ' + esc(q.l) + '</span></h2>'
+      + '<p class="q">' + esc(q.q) + '</p>' + (q.c ? '<pre>' + esc(q.c) + '</pre>' : '')
+      + '<ul>' + opts.map((o, k) => '<li' + (k === q.a ? ' class="right"' : '') + '><b>' + L[k] + '</b> ' + esc(o)
+        + (k === q.a ? ' <em>&#10003; Correct answer</em>' : '') + '</li>').join('') + '</ul>'
+      + (q.e ? '<div class="ex"><b>Explanation</b><br>' + esc(q.e) + '</div>' : '<div class="ex none"><b>No explanation</b></div>') + '</article>';
+  });
+  const nav = Q.map((q, i) => '<a href="#q' + (i + 1) + '">' + (i + 1) + '</a>').join(' ');
+  const lv = Object.keys(perLevel).map(k => 'Level ' + k + ': ' + perLevel[k]).join(' &nbsp;|&nbsp; ');
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+    + '<meta name="robots" content="noindex"><title>Question review</title><style>'
+    + 'body{margin:0;background:#f4f5f7;color:#1a1a1a;font:18px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}'
+    + 'main{max-width:820px;margin:0 auto;padding:16px}h1{font-size:28px;margin:12px 0 4px}'
+    + '.sum{color:#444;margin:0 0 12px}nav{line-height:2.1;margin:0 0 8px}nav a{display:inline-block;min-width:34px;text-align:center;background:#fff;border:1px solid #cfd4db;border-radius:6px;color:#1a4fa3;text-decoration:none;margin:0 2px}'
+    + '.warn{background:#fdecea;border-left:5px solid #c62828;padding:10px 16px;margin:14px 0}.warn ul{margin:6px 0 0;padding-left:20px}.ok{background:#e6f6ea;border-left:5px solid #2e9d4f;padding:10px 16px;margin:14px 0}'
+    + 'article{background:#fff;border-radius:8px;padding:18px 24px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,.12);break-inside:avoid}'
+    + 'h2{font-size:20px;margin:0 0 8px}h2 span{font-size:14px;font-weight:600;background:#e8ebf0;color:#444;border-radius:12px;padding:2px 10px;margin-left:8px;vertical-align:middle}'
+    + '.q{font-size:21px;font-weight:600;margin:6px 0 12px}pre{background:#f0f2f5;border-left:4px solid #8895a7;padding:12px 14px;margin:0 0 14px;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}'
+    + 'ul{list-style:none;margin:0;padding:0}li{border:1px solid #d9dde3;border-radius:6px;padding:8px 12px;margin:6px 0}li b{display:inline-block;width:24px}'
+    + 'li.right{background:#e6f6ea;border:2px solid #2e9d4f}li em{font-style:normal;font-weight:700;color:#1b7a38;margin-left:8px}'
+    + '.ex{background:#fff8e1;border-left:4px solid #f0b429;padding:10px 14px;margin-top:14px;white-space:pre-line}.ex.none{background:#fdecea;border-color:#c62828}'
+    + '</style></head><body><main><h1>Question review</h1><p class="sum">' + Q.length + ' questions &nbsp;|&nbsp; ' + lv + '</p><nav>' + nav + '</nav>'
+    + (problems.length ? '<div class="warn"><b>Things to check (' + problems.length + ')</b><ul>' + problems.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul></div>'
+      : '<div class="ok">No structural problems found: every question has 4 distinct options, a valid correct answer and an explanation.</div>')
+    + cards.join('') + '</main></body></html>';
+}
+
 const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
   if (url === '/intro.mp3' || url === '/horses.mp3' || ['/cheering.mp3', '/fire.mp3', '/good.mp3', '/bad.mp3', '/fireworks.mp3', '/correct.mp3'].includes(url)) { serveMp3(req, res, url.slice(1)); return; }
+  if (url === '/review') {
+    if (new URLSearchParams(req.url.split('?')[1] || '').get('admin') === ADMIN) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' });
+      res.end(reviewPage());
+    } else { res.writeHead(404); res.end('not found'); }
+    return;
+  }
   if (req.url === '/health') { res.end('ok'); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
