@@ -203,6 +203,19 @@ body.adm #credit{bottom:52px}
 #podBox{padding:0;overflow:hidden}
 #pod{display:block;width:100%;height:300px;background:linear-gradient(#0b0620,#2b1055 70%,#3d1368)}
 @media (prefers-reduced-motion:reduce){.car::after,.sl,.car.spin,.lw,.fg i,.stand.cheer::before,.stand.cheer::after,#ban,#rain,.gc,#gstrip.go .gc,#gword{animation:none}}
+
+/* ===== v3 ===== */
+button.opt.rt{border-color:var(--green);box-shadow:0 0 0 3px var(--green);color:#fff}
+button.opt.rw{border-color:#fff;box-shadow:0 0 0 3px #fff;color:#fff}
+button.opt.rr{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink);color:#fff}
+button.opt.dim{opacity:.4}
+button.opt.rt::after,button.opt.rw::after{content:"  \2713"}
+button.opt.rr::after{content:"  \2717"}
+button.opt.rt::after{color:var(--green)}
+button.opt.rr::after{color:var(--pink)}
+#how{margin-top:16px;border-top:3px solid var(--cyan);padding-top:10px;text-align:left}
+#how h3{font-size:12px;line-height:1.5;margin:0 0 6px;color:var(--yellow)}
+#how ul{margin:0;padding-left:18px;font-family:var(--read);font-size:22px;line-height:1.25;color:#fff;text-shadow:2px 2px 0 #000}
 </style>
 </head>
 <body>
@@ -250,6 +263,14 @@ body.adm #credit{bottom:52px}
     <h2 id="waitTitle">Waiting for start</h2>
     <p id="waitText" class="d"></p>
     <button class="go hide" id="startBtn">START THE RACE</button>
+    <div id="how"><h3>HOW TO SCORE</h3><ul>
+      <li>Correct answer: 100 points x level (level 5 = 500)</li>
+      <li>Answer fast: up to +50 extra</li>
+      <li>3 correct in a row: BOOST, +50 on every correct answer after that</li>
+      <li>Fastest correct answer: FASTEST LAP, +50</li>
+      <li>Wrong or no answer: 0 points and the streak is lost</li>
+      <li>Every 3rd question: PIT STOP! Anything can happen...</li>
+    </ul></div>
   </section>
 
   <section id="s-q" class="hide">
@@ -264,7 +285,7 @@ body.adm #credit{bottom:52px}
   </section>
 
   <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">PAUSED BY HOST</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
+    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">WAITING FOR THE HOST...</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
     <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
     <p id="rMe" class="y"></p>
   </section>
@@ -625,9 +646,9 @@ function renderPitRes(m) {
   if (e.all) sub += '  |  Everyone else: up to ' + sign(-e.all) + ' points';
   if (!m.you && m.mine) sub += '  |  You: ' + sign(m.mine) + ' points';
   $('#rSub').textContent = sub;
-  $('#rExpl').classList.add('hide'); $('#rPause').classList.add('hide'); $('#pauseBtn').classList.add('hide'); $('#rFast').classList.add('hide');
+  $('#rExpl').classList.add('hide'); $('#rFast').classList.add('hide'); setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   drawTrack($('#rTrack'), m.top, m.me, m.max, false);
-  $('#rMe').textContent = 'You are in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points';
+  $('#rMe').textContent = placeText(m.me, m.total);
   if (e.fx === 'rain') rainOn();
   if (m.ov) overtake(m);
 }
@@ -694,6 +715,24 @@ function podiumStart(m) {
   }
   podUI.on = true; frame();
   Sx.play('cheering', 9000); Sx.play('fireworks', 9000);
+}
+
+// ---------- v3: answer feedback, CONTINUE, rival ----------
+let myPick = -1, rvTimer = null;
+function revealThen(m) {
+  clearTimeout(rvTimer);
+  const box = $('#opts'), onQ = !$('#s-q').classList.contains('hide');
+  if (!onQ || !box.children.length || m.correct === undefined) { renderR(m); return; }
+  clearInterval(timerId);
+  [...box.children].forEach((b, i) => {
+    b.disabled = true; b.classList.remove('sel');
+    b.classList.add(i === m.correct ? (myPick === i ? 'rt' : 'rw') : (i === myPick ? 'rr' : 'dim'));
+  });
+  if (myPick === m.correct) Sx.play('correct', 3000);
+  rvTimer = setTimeout(() => renderR(m), 2500);
+}
+function placeText(me, total) {
+  return 'You are in place ' + me.rank + ' of ' + total + ' with ' + me.score + ' points' + (me.rival ? '  |  ' + (me.rival.score - me.score) + ' behind ' + me.rival.name : '');
 }
 
 function show(id) {
@@ -857,7 +896,7 @@ function on(m) {
   } else if (m.t === 'q') renderQ(m);
   else if (m.t === 'prog') $('#qProg').textContent = 'Answered: ' + m.done + ' of ' + m.of;
   else if (m.t === 'ack') beep([330]);
-  else if (m.t === 'r') renderR(m);
+  else if (m.t === 'r') revealThen(m);
   else if (m.t === 'pit') pitStart(m);
   else if (m.t === 'grid') gridStart(m);
   else if (m.t === 'pr') renderPitRes(m);
@@ -865,7 +904,7 @@ function on(m) {
 }
 
 function renderQ(m) {
-  qIdx = m.i; show('s-q');
+  qIdx = m.i; myPick = -1; clearTimeout(rvTimer); show('s-q');
   $('#qLevel').textContent = 'LEVEL ' + m.l;
   $('#qNum').textContent = 'QUESTION ' + (m.i + 1) + '/' + m.n;
   $('#qText').textContent = m.q;
@@ -883,7 +922,7 @@ function renderQ(m) {
   clearInterval(timerId); timerId = setInterval(tickBar, 200); tickBar();
 }
 function answer(i, btn) {
-  tx({ t: 'a', i: qIdx, c: i });
+  tx({ t: 'a', i: qIdx, c: i }); myPick = i;
   [...$('#opts').children].forEach(b => b.disabled = true);
   btn.classList.add('sel');
 }
@@ -897,6 +936,7 @@ function tickBar() {
 function drawTrack(box, top, me, max, nitro, final) {
   box.textContent = '';
   const rows = top.map((p, i) => ({ k: 'p' + p.id, ci: p.id, n: (i + 1) + '. ' + p.name, s: p.score, pos: p.pos, you: p.you, fx: p.fx, fast: p.fast }));
+  if (me.rank > 6 && me.rival) rows.push({ k: 'p' + me.rival.id, ci: me.rival.id, n: (me.rank - 1) + '. ' + me.rival.name, s: me.rival.score, pos: me.rival.pos });
   if (me.rank > 5) rows.push({ k: 'p' + me.id, ci: me.id, n: me.rank + '. YOU', s: me.score, pos: me.pos, you: true, fx: me.fx, fast: me.fast });
   rows.forEach((r, i) => {
     const t = el('div', 'track' + (r.you ? ' you' : '') + (r.fast ? ' fast' : ''));
@@ -925,7 +965,7 @@ function renderR(m) {
   setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   if (!me.ok) { m.top.forEach(x => { if (x.you && !x.fx) x.fx = 'tyre'; }); if (!me.fx) me.fx = 'tyre'; }
   drawTrack($('#rTrack'), m.top, me, m.max, nitro); reactR(m);
-  $('#rMe').textContent = 'You are in place ' + me.rank + ' of ' + m.total + ' with ' + me.score + ' points';
+  $('#rMe').textContent = placeText(me, m.total);
   beep(me.ok ? [523, 784] : [196, 147]);
   if (nitro) nitroFx();
 }

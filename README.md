@@ -12,7 +12,7 @@ Add the host password after `?admin=`. Only the host sees the **START THE RACE**
 ## How it works
 
 1. Players open the link, enter a name (no login) and wait in the lobby.
-2. The host starts the race. The server then runs everything on its own, so the host can close the page.
+2. The host starts the race. After each question (and each Pit Stop) the host presses CONTINUE, so keep the host page open.
 3. Everyone gets the same question at the same time. The question ends when all players have answered, or when time runs out (45 to 90 seconds, depending on level).
 4. After each question the correct answer is shown, together with the top 5 and your own position.
 5. After the last question, the final standings are shown.
@@ -33,7 +33,7 @@ A correct answer gives:
 
 - **Base points:** 100 × level (100 on level 1, up to 500 on level 5)
 - **Speed bonus:** 0 to 50 points, based on how much time was left
-- **Boost bonus:** +50 for each correct answer after 3 in a row
+- **Boost bonus:** +50 for each correct answer from the 3rd in a row
 
 A wrong answer or no answer gives 0 points and resets your streak.
 
@@ -65,6 +65,9 @@ About 60 % of the events are good ones. Points never go below 0.
 - **Overtake:** when someone takes the lead on points, a banner shows, the crowd cheers and waves flags.
 - **Podium:** the final screen shows a podium with the top 3, a trophy, champagne and fireworks.
 - **Sounds you add yourself** (put them next to `index.html`): `intro.mp3` (music, SOUND button), `horses.mp3` (engine sound), `cheering.mp3` (crowd cheering on overtakes and on the podium), `good.mp3` and `bad.mp3` (played when the pit stop is good or bad), `fire.mp3` (crackling fire at ENGINE FIRE) and `fireworks.mp3` (podium). All except `intro.mp3` are controlled by the SFX button. A missing file is simply silent.
+
+- **Answer feedback:** when a question ends, the right answer gets a white frame, your correct pick a green frame and your wrong pick a red frame, for 2.5 seconds, before the result screen. `correct.mp3` plays when you were right.
+- **Rival:** if you are outside the top 5, the player just ahead of you is shown too, and the points you are behind.
 
 ## Good to know
 

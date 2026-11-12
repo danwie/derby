@@ -32,7 +32,7 @@ function serveMp3(req, res, file) {
 
 const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
-  if (url === '/intro.mp3' || url === '/horses.mp3' || ['/cheering.mp3', '/fire.mp3', '/good.mp3', '/bad.mp3', '/fireworks.mp3'].includes(url)) { serveMp3(req, res, url.slice(1)); return; }
+  if (url === '/intro.mp3' || url === '/horses.mp3' || ['/cheering.mp3', '/fire.mp3', '/good.mp3', '/bad.mp3', '/fireworks.mp3', '/correct.mp3'].includes(url)) { serveMp3(req, res, url.slice(1)); return; }
   if (req.url === '/health') { res.end('ok'); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
@@ -115,9 +115,9 @@ function handle(c, m) {
   } else if (m.t === 'pause' && c.admin && phase === 'reveal' && !paused) {
     paused = true; clearTimeout(revealTimer);
     live().forEach(p => send(p.c, { t: 'pause', on: true }));
-  } else if (m.t === 'resume' && c.admin && phase === 'reveal' && paused) {
+  } else if (m.t === 'resume' && c.admin && (phase === 'reveal' || phase === 'pitres') && paused) {
     live().forEach(p => send(p.c, { t: 'pause', on: false }));
-    afterReveal();
+    if (phase === 'pitres') nextQ(); else afterReveal();
   } else if (m.t === 'a' && phase === 'question' && c.player && c.player.ans === null && m.i === qi) {
     const k = m.c | 0;
     if (k < 0 || k > 3) return;
@@ -185,7 +185,7 @@ function board(p) {
   const ranked = [...players.values()].sort((a, b) => b.score - a.score);
   return {
     top: ranked.slice(0, 5).map(x => ({ id: x.id, name: x.name, score: x.score, pos: x.pos, you: x === p, fx: fxOf(x), fast: x.fast })),
-    me: { id: p.id, fx: fxOf(p), fast: p.fast, rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
+    me: { id: p.id, fx: fxOf(p), fast: p.fast, rival: rivalOf(ranked, p), rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
     total: ranked.length, max: MAXSCORE, prog: progress()
   };
 }
@@ -230,8 +230,8 @@ function reveal() {
     p.pos = Math.max(p.pos || 0, Math.min(target, L));
   });
   ovName = checkLead();
+  paused = true; // the host presses CONTINUE
   live().forEach(p => send(p.c, revealMsg(p)));
-  revealTimer = setTimeout(afterReveal, REVEAL_MS);
 }
 
 // ---------- Pit stop: ett slumpmoment efter var PIT_EVERY:e fraga ----------
@@ -240,6 +240,12 @@ function afterReveal() {
 }
 
 const FAST_BONUS = 50;
+function rivalOf(ranked, p) {
+  const i = ranked.indexOf(p);
+  if (i < 1) return null;
+  const r = ranked[i - 1];
+  return { id: r.id, name: r.name, score: r.score, pos: r.pos };
+}
 
 // visual effect to show on a car: only right after a pit stop (and smoke after a fire)
 function fxOf(p) {
@@ -308,7 +314,7 @@ function pitMsg(p) {
 }
 function pitResMsg(p) {
   return Object.assign({ t: 'pr', who: pit.p.name, you: p === pit.p, vic: pit.ev.vic ? pit.ev.vic.name : '', ev: pitEv(),
-    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName }, board(p));
+    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName, paused }, board(p));
 }
 
 function startPit() {
@@ -338,9 +344,8 @@ function finishPit() {
   settle(ch, before);
   pit.mine = new Map(); before.forEach((b, x) => pit.mine.set(x, x.score - b));
   ovName = checkLead();
-  phase = 'pitres';
+  phase = 'pitres'; paused = true; // the host presses CONTINUE
   live().forEach(x => send(x.c, pitResMsg(x)));
-  pitTimer = setTimeout(nextQ, PIT_RES);
 }
 
 // ---------- Startljus fore forsta fragan ----------
