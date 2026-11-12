@@ -164,7 +164,7 @@ function handle(c, m) {
     if (phase === 'pitres') startGrid(); else afterReveal();
   } else if (m.t === 'a' && phase === 'question' && c.player && c.player.ans === null && m.i === qi) {
     const k = m.c | 0;
-    if (k < 0 || k > 3) return;
+    if (k < -1 || k > 3) return; // -1 = SKIP (counts as a wrong answer)
     c.player.ans = k; c.player.t = Date.now();
     send(c, { t: 'ack' });
     pulse();
@@ -229,7 +229,7 @@ function board(p) {
   const ranked = [...players.values()].sort((a, b) => b.score - a.score);
   return {
     top: ranked.slice(0, 5).map(x => ({ id: x.id, name: x.name, score: x.score, pos: x.pos, you: x === p, fx: fxOf(x), fast: x.fast })),
-    me: { id: p.id, fx: fxOf(p), fast: p.fast, rival: rivalOf(ranked, p), rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
+    me: { id: p.id, fx: fxOf(p), fast: p.fast, rival: rivalOf(ranked, p), rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null, skipped: p.ans === -1 },
     total: ranked.length, max: MAXSCORE, prog: progress()
   };
 }

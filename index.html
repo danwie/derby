@@ -216,6 +216,7 @@ button.opt.rr::after{color:var(--pink)}
 #how{margin-top:16px;border-top:3px solid var(--cyan);padding-top:10px;text-align:left}
 #how h3{font-size:12px;line-height:1.5;margin:0 0 6px;color:var(--yellow)}
 #how ul{margin:0;padding-left:18px;font-family:var(--read);font-size:22px;line-height:1.25;color:#fff;text-shadow:2px 2px 0 #000}
+button.opt.skip{font-size:20px;text-align:center;color:var(--dim);border-color:var(--dim);margin-top:16px;padding:8px 14px}
 </style>
 </head>
 <body>
@@ -268,7 +269,7 @@ button.opt.rr::after{color:var(--pink)}
       <li>Answer fast: up to +50 extra</li>
       <li>3 correct in a row: BOOST, +50 on every correct answer after that</li>
       <li>Fastest correct answer: FASTEST LAP, +50</li>
-      <li>Wrong or no answer: 0 points and the streak is lost</li>
+      <li>Wrong, skipped or no answer: 0 points and the streak is lost</li>
       <li>Every 3rd question: PIT STOP! Anything can happen...</li>
     </ul></div>
   </section>
@@ -917,6 +918,7 @@ function renderQ(m) {
     b.onclick = () => answer(i, b);
     box.appendChild(b);
   });
+  const sk = el('button', 'opt skip', 'SKIP'); sk.onclick = () => answer(-1, sk); box.appendChild(sk);
   if (m.answered) [...box.children].forEach(b => b.disabled = true);
   deadline = Date.now() + m.left; dur = m.dur;
   clearInterval(timerId); timerId = setInterval(tickBar, 200); tickBar();
@@ -959,7 +961,7 @@ function renderR(m) {
   clearInterval(timerId); show('s-r');
   const me = m.me, h = $('#rHead'), nitro = me.ok && me.streak >= 3;
   h.className = 'big ' + (me.ok ? 'ok' : 'no');
-  h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.answered ? 'WRONG!' : "TIME'S UP");
+  h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.skipped ? 'SKIPPED' : me.answered ? 'WRONG!' : "TIME'S UP");
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  BOOST! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
   setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);

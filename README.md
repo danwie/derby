@@ -35,7 +35,7 @@ A correct answer gives:
 - **Speed bonus:** 0 to 50 points, based on how much time was left
 - **Boost bonus:** +50 for each correct answer from the 3rd in a row
 
-A wrong answer or no answer gives 0 points and resets your streak.
+A wrong answer, a skipped question (SKIP) or no answer gives 0 points and resets your streak.
 
 ## Pit Stop
 
