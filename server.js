@@ -32,7 +32,7 @@ function serveMp3(req, res, file) {
 
 const server = http.createServer((req, res) => {
   const url = req.url.split('?')[0];
-  if (url === '/intro.mp3' || url === '/horses.mp3') { serveMp3(req, res, url.slice(1)); return; }
+  if (url === '/intro.mp3' || url === '/horses.mp3' || ['/cheering.mp3', '/fire.mp3', '/good.mp3', '/bad.mp3', '/fireworks.mp3'].includes(url)) { serveMp3(req, res, url.slice(1)); return; }
   if (req.url === '/health') { res.end('ok'); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
@@ -83,7 +83,7 @@ setInterval(() => clients.forEach(c => { try { c.socket.write(Buffer.from([0x89,
 
 // ---------- Spel ----------
 const players = new Map(); // token -> spelare
-let phase = 'lobby', qi = -1, cur = null, timer = null, revealTimer = null, paused = false, pitTimer = null, pit = null, pid = 0;
+let phase = 'lobby', qi = -1, cur = null, timer = null, revealTimer = null, paused = false, pitTimer = null, pit = null, pid = 0, gridTimer = null, grid = null, lastLead = null, ovName = '', fastName = '';
 
 const live = () => [...players.values()].filter(p => p.c);
 const answered = () => live().filter(p => p.ans !== null).length;
@@ -95,7 +95,7 @@ function handle(c, m) {
     if (!p) {
       if (live().length >= MAX_PLAYERS) { send(c, { t: 'full' }); return; }
       const name = String(m.name || '').trim().slice(0, 16) || 'Player';
-      p = { token: crypto.randomBytes(8).toString('hex'), name, score: 0, streak: 0, pos: 0, ans: null, t: 0, delta: 0, ok: false, c: null, id: ++pid, hit: false };
+      p = { token: crypto.randomBytes(8).toString('hex'), name, score: 0, streak: 0, pos: 0, ans: null, t: 0, delta: 0, ok: false, c: null, id: ++pid, hit: false, fx: '', fxQ: -9, fast: false };
       players.set(p.token, p);
     }
     p.c = c; c.player = p; c.admin = m.admin === ADMIN;
@@ -105,10 +105,11 @@ function handle(c, m) {
     else if (phase === 'reveal') send(c, revealMsg(p));
     else if (phase === 'pit') send(c, pitMsg(p));
     else if (phase === 'pitres') send(c, pitResMsg(p));
+    else if (phase === 'grid') send(c, gridMsg());
     else send(c, { t: 'wait', phase, n: live().length });
     pulse();
   } else if (m.t === 'start' && c.admin && phase === 'lobby') {
-    nextQ();
+    startGrid();
   } else if (m.t === 'reset' && c.admin) {
     reset();
   } else if (m.t === 'pause' && c.admin && phase === 'reveal' && !paused) {
@@ -128,11 +129,11 @@ function handle(c, m) {
 }
 
 function reset() {
-  clearTimeout(timer); clearTimeout(revealTimer); clearTimeout(pitTimer); pit = null; paused = false;
+  clearTimeout(timer); clearTimeout(revealTimer); clearTimeout(pitTimer); clearTimeout(gridTimer); pit = null; grid = null; lastLead = null; ovName = ''; fastName = ''; paused = false;
   phase = 'lobby'; qi = -1; cur = null;
   players.forEach((p, k) => {
     if (!p.c) { players.delete(k); return; }
-    p.score = 0; p.streak = 0; p.pos = 0; p.ans = null; p.t = 0; p.delta = 0; p.ok = false; p.hit = false;
+    p.score = 0; p.streak = 0; p.pos = 0; p.ans = null; p.t = 0; p.delta = 0; p.ok = false; p.hit = false; p.fx = ''; p.fast = false;
   });
   live().forEach(p => send(p.c, { t: 'reset' }));
   pulse();
@@ -162,7 +163,7 @@ function sendQ(c, p) {
 }
 
 function nextQ() {
-  paused = false;
+  paused = false; ovName = ''; fastName = ''; players.forEach(p => { p.fast = false; });
   qi++;
   if (qi >= Q.length) { phase = 'end'; live().forEach(p => send(p.c, endMsg(p))); return; }
   const q = Q[qi], order = shuffle([0, 1, 2, 3]), dur = TIMES[q.l] * 1000;
@@ -183,15 +184,15 @@ function progress() {
 function board(p) {
   const ranked = [...players.values()].sort((a, b) => b.score - a.score);
   return {
-    top: ranked.slice(0, 5).map(x => ({ id: x.id, name: x.name, score: x.score, pos: x.pos, you: x === p })),
-    me: { id: p.id, rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
+    top: ranked.slice(0, 5).map(x => ({ id: x.id, name: x.name, score: x.score, pos: x.pos, you: x === p, fx: fxOf(x), fast: x.fast })),
+    me: { id: p.id, fx: fxOf(p), fast: p.fast, rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null },
     total: ranked.length, max: MAXSCORE, prog: progress()
   };
 }
 
 function revealMsg(p) {
   const q = Q[qi];
-  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused }, board(p));
+  return Object.assign({ t: 'r', correct: cur.correct, right: cur.opts[cur.correct], last: qi === Q.length - 1, e: q.e || '', paused, ov: ovName, fl: fastName, fb: FAST_BONUS }, board(p));
 }
 
 function endMsg(p) { return Object.assign({ t: 'end' }, board(p)); }
@@ -210,6 +211,13 @@ function reveal() {
       p.score += p.delta;
     } else p.streak = 0;
   });
+  // Fastest lap: the fastest correct answer gets a bonus
+  fastName = '';
+  const okp = [...players.values()].filter(x => x.ok);
+  if (okp.length) {
+    const f = okp.reduce((a, b) => (b.t < a.t ? b : a));
+    f.fast = true; f.delta += FAST_BONUS; f.score += FAST_BONUS; fastName = f.name;
+  }
   // Car position (display only): moves only after a correct answer, never goes back, and no car
   // can pass the leading car. A car only gets in front by taking the lead on points.
   const lead = Math.max(0, ...[...players.values()].map(x => x.score)), P = progress();
@@ -221,6 +229,7 @@ function reveal() {
     const target = P * Math.pow(p.score / lead, 0.7);
     p.pos = Math.max(p.pos || 0, Math.min(target, L));
   });
+  ovName = checkLead();
   live().forEach(p => send(p.c, revealMsg(p)));
   revealTimer = setTimeout(afterReveal, REVEAL_MS);
 }
@@ -230,23 +239,48 @@ function afterReveal() {
   if ((qi + 1) % PIT_EVERY === 0 && qi < Q.length - 1 && live().length > 0) startPit(); else nextQ();
 }
 
+const FAST_BONUS = 50;
+
+// visual effect to show on a car: only right after a pit stop (and smoke after a fire)
+function fxOf(p) {
+  if (!p.fx || p.fx === 'rain') return '';
+  if (phase === 'pitres' && p.fxQ === qi) return p.fx;
+  if (p.fx === 'fire' && phase === 'reveal' && qi === p.fxQ + 1) return 'smoke';
+  return '';
+}
+
+// returns the name of a new leader (on points), or '' if the lead did not change hands
+function checkLead() {
+  const top = [...players.values()].sort((a, b) => b.score - a.score)[0];
+  let ov = '';
+  if (top && top.score > 0) {
+    if (lastLead && lastLead !== top && top.score > lastLead.score) ov = top.name;
+    if (!lastLead || ov || lastLead === top) lastLead = top;
+  }
+  return ov;
+}
+
 function pickEvent(p) {
   const l = Q[qi].l, ranked = [...players.values()].sort((a, b) => b.score - a.score), i = ranked.indexOf(p);
   const ahead = i > 0 ? ranked[i - 1] : null, defs = [];
   const add = (good, title, d, desc, extra) => defs.push(Object.assign({ good, title, d, desc }, extra));
-  add(true, 'PERFECT PIT STOP', 50 * l, 'A lightning-fast tyre change. Bonus points for the crew!');
-  add(true, 'POLE POSITION', 100 * l, 'You grabbed pole position. Big bonus!');
+  add(true, 'PERFECT PIT STOP', 50 * l, 'A lightning-fast tyre change. Bonus points for the crew!', { fx: 'spark' });
+  add(true, 'POLE POSITION', 100 * l, 'You grabbed pole position. Big bonus!', { fx: 'spark' });
   if (ahead && ahead.score > 0) {
     const x = Math.min(50 * l, ahead.score);
-    add(true, 'UNDERCUT', x, ahead.name + ' stayed out too long. You steal their points!', { vic: ahead, vd: x });
+    add(true, 'UNDERCUT', x, ahead.name + ' stayed out too long. You steal their points!', { vic: ahead, vd: x, fx: 'spark' });
   }
-  if (p.delta > 0) add(true, 'DOUBLE POINTS', p.delta, 'The points from your last answer count twice!');
+  if (p.delta > 0) add(true, 'DOUBLE POINTS', p.delta, 'The points from your last answer count twice!', { fx: 'spark' });
+  add(true, 'RAIN', 75 * l, 'Wet track! You picked the right tyres. Everyone else slides and loses points.', { fx: 'rain', all: 25 * l });
   if (p.score > 0) {
-    add(false, 'PUNCTURE', -Math.min(50 * l, p.score), 'A blown tyre costs you time and points.');
-    add(false, 'ENGINE FAILURE', -Math.min(100 * l, p.score), 'Smoke from the engine. Ouch!');
-    add(false, '5-SECOND PENALTY', -Math.min(25 * l, p.score), 'The stewards add a time penalty. Your streak is lost.', { streak: true });
+    add(false, 'PUNCTURE', -Math.min(50 * l, p.score), 'A blown tyre costs you time and points.', { fx: 'tyre' });
+    add(false, 'ENGINE FAILURE', -Math.min(100 * l, p.score), 'Smoke from the engine. Ouch!', { fx: 'smoke' });
+    add(false, 'ENGINE FIRE', -Math.min(100 * l, p.score), 'Flames from the engine! The marshals rush in with extinguishers. Your streak is lost.', { fx: 'fire', streak: true });
+    add(false, 'WHEEL COMES OFF', -Math.min(75 * l, p.score), 'A wheel comes loose and rolls away. Sparks everywhere!', { fx: 'wheel' });
+    add(false, 'SPIN', -Math.min(50 * l, p.score), 'You lose control and spin around. Your streak is lost.', { fx: 'spin', streak: true });
+    add(false, '5-SECOND PENALTY', -Math.min(25 * l, p.score), 'The stewards add a time penalty. Your streak is lost.', { fx: 'tyre', streak: true });
   }
-  if (p.delta > 0) add(false, 'TRACK LIMITS', -p.delta, 'You went off track. Your last answer is cancelled and your streak is lost.', { streak: true });
+  if (p.delta > 0) add(false, 'TRACK LIMITS', -p.delta, 'You went off track. Your last answer is cancelled and your streak is lost.', { fx: 'tyre', streak: true });
   const goods = defs.filter(e => e.good), bads = defs.filter(e => !e.good);
   let pool = Math.random() < 0.6 ? goods : bads;
   if (!pool.length) pool = goods;
@@ -267,13 +301,14 @@ function settle(changed, before) {
 
 function pitEv() {
   const e = pit.ev;
-  return { title: e.title, desc: e.desc, good: e.good, d: e.d, vd: e.vd || 0 };
+  return { title: e.title, desc: e.desc, good: e.good, d: e.d, vd: e.vd || 0, all: e.all || 0, fx: e.fx || '' };
 }
 function pitMsg(p) {
   return { t: 'pit', names: pit.names, w: pit.w, el: Date.now() - pit.start, spin: PIT_SPIN, count: PIT_COUNT, you: p === pit.p, ev: pitEv() };
 }
 function pitResMsg(p) {
-  return Object.assign({ t: 'pr', who: pit.p.name, you: p === pit.p, vic: pit.ev.vic ? pit.ev.vic.name : '', ev: pitEv() }, board(p));
+  return Object.assign({ t: 'pr', who: pit.p.name, you: p === pit.p, vic: pit.ev.vic ? pit.ev.vic.name : '', ev: pitEv(),
+    mine: pit.mine ? (pit.mine.get(p) || 0) : 0, ov: ovName }, board(p));
 }
 
 function startPit() {
@@ -282,7 +317,7 @@ function startPit() {
   const p = cand[Math.random() * cand.length | 0];
   p.hit = true;
   const order = shuffle(live().slice());
-  pit = { p, ev: pickEvent(p), names: order.map(x => ({ n: x.name, c: x.id })), w: order.indexOf(p), start: Date.now() };
+  pit = { p, ev: pickEvent(p), names: order.map(x => ({ n: x.name, c: x.id })), w: order.indexOf(p), start: Date.now(), mine: null };
   phase = 'pit';
   live().forEach(x => send(x.c, pitMsg(x)));
   pitTimer = setTimeout(finishPit, PIT_SPIN + PIT_COUNT + PIT_SHOW);
@@ -290,15 +325,31 @@ function startPit() {
 
 function finishPit() {
   if (phase !== 'pit') return;
-  const e = pit.ev, w = pit.p, ch = [w], before = new Map();
-  before.set(w, w.score); if (e.vic) before.set(e.vic, e.vic.score);
+  const e = pit.ev, w = pit.p, ch = [w], before = new Map([[w, w.score]]);
+  players.forEach(x => { x.fast = false; });
   w.score = Math.max(0, w.score + e.d);
   if (e.streak) w.streak = 0;
-  if (e.vic) { e.vic.score = Math.max(0, e.vic.score - e.vd); ch.push(e.vic); }
+  if (e.vic) { before.set(e.vic, e.vic.score); e.vic.score = Math.max(0, e.vic.score - e.vd); ch.push(e.vic); }
+  if (e.all) players.forEach(x => {
+    if (x !== w && x !== e.vic && x.score > 0) { before.set(x, x.score); x.score = Math.max(0, x.score - e.all); ch.push(x); }
+  });
+  w.fx = e.fx || ''; w.fxQ = qi;
+  if (e.vic) { e.vic.fx = 'tyre'; e.vic.fxQ = qi; }
   settle(ch, before);
+  pit.mine = new Map(); before.forEach((b, x) => pit.mine.set(x, x.score - b));
+  ovName = checkLead();
   phase = 'pitres';
   live().forEach(x => send(x.c, pitResMsg(x)));
   pitTimer = setTimeout(nextQ, PIT_RES);
+}
+
+// ---------- Startljus fore forsta fragan ----------
+function gridMsg() { return { t: 'grid', el: Date.now() - grid.start, hold: grid.hold }; }
+function startGrid() {
+  grid = { start: Date.now(), hold: 1000 + (Math.random() * 1500 | 0) };
+  phase = 'grid';
+  live().forEach(p => send(p.c, gridMsg()));
+  gridTimer = setTimeout(nextQ, 5000 + grid.hold + 1500);
 }
 
 server.listen(PORT, () => console.log('Sundsgården SQL Grand Prix running on port ' + PORT));

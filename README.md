@@ -51,8 +51,20 @@ After every 3rd question (not after the last one) the game takes a pit stop. The
 | ENGINE FAILURE | -100 x level points |
 | 5-SECOND PENALTY | -25 x level points and the streak is lost |
 | TRACK LIMITS | the points from the last answer are cancelled and the streak is lost |
+| ENGINE FIRE | -100 x level points and the streak is lost. The car burns on the track |
+| WHEEL COMES OFF | -75 x level points. A wheel rolls away |
+| SPIN | -50 x level points and the streak is lost. The car spins around |
+| RAIN | +75 x level points for the chosen player, everyone else loses up to 25 x level points |
 
 About 60 % of the events are good ones. Points never go below 0.
+
+## More Grand Prix
+
+- **Start lights:** when the host starts the race, five red lights come on one by one, go out after a random pause, and the cars launch.
+- **Fastest lap:** the fastest correct answer on each question gets +50 points and a purple marker.
+- **Overtake:** when someone takes the lead on points, a banner shows, the crowd cheers and waves flags.
+- **Podium:** the final screen shows a podium with the top 3, a trophy, champagne and fireworks.
+- **Sounds you add yourself** (put them next to `index.html`): `intro.mp3` (music, SOUND button), `horses.mp3` (engine sound), `cheering.mp3` (crowd cheering on overtakes and on the podium), `good.mp3` and `bad.mp3` (played when the pit stop is good or bad), `fire.mp3` (crackling fire at ENGINE FIRE) and `fireworks.mp3` (podium). All except `intro.mp3` are controlled by the SFX button. A missing file is simply silent.
 
 ## Good to know
 

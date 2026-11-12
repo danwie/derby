@@ -143,6 +143,66 @@ body.adm #credit{bottom:52px}
 .flag.r::after{left:auto;right:-.14em}
 @keyframes fw{50%{transform:rotate(var(--b))}}
 @media (prefers-reduced-motion:reduce){.flag{animation:none}}
+
+/* ===== Grand Prix v2 ===== */
+/* exhaust smoke, boost streaks, effects on cars */
+.car::after{content:"";position:absolute;right:100%;top:12px;width:4px;height:4px;background:#9a9aa8;box-shadow:-6px 2px #7c7c8c,-12px -1px #5e5e6e;opacity:.85;animation:ex .5s steps(3) infinite}
+@keyframes ex{to{transform:translateX(-8px);opacity:0}}
+.sl{position:absolute;right:100%;top:6px;width:18px;height:2px;background:#fff;box-shadow:-14px 8px #fff,-6px 16px #fff,-26px 2px #cfd8ff,-20px 20px #cfd8ff;animation:slm .2s steps(2) infinite}
+@keyframes slm{to{transform:translateX(-10px)}}
+.lane.fx{overflow:visible}
+.fxs{position:absolute;display:block;pointer-events:none}
+.fxs.fire{width:30px;height:30px;left:14px;top:-18px}
+.fxs.smoke{width:30px;height:30px;left:14px;top:-40px}
+.fxs.tyre{width:30px;height:24px;left:-8px;top:18px}
+.fxs.spark{width:60px;height:36px;left:14px;top:-6px}
+.car.tilt{transform:rotate(-6deg);transform-origin:0 100%}
+.car.spin{transform-origin:44px 20px;animation:spn 1.4s steps(14) 1}
+@keyframes spn{to{transform:rotate(720deg)}}
+.lw{position:absolute;left:14px;top:16px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#e1e1eb 0 3px,#0e0e10 3.5px);animation:lwr 1.6s steps(16) 1 forwards}
+@keyframes lwr{to{transform:translate(150px,0)}}
+.track.fast .nm{color:#d7a8ff}
+#rFast{font-size:13px;line-height:1.6;color:#d7a8ff;text-shadow:2px 2px 0 #000;margin:8px 0}
+/* crowd cheering */
+.stand .fg{display:none;position:absolute;inset:0;z-index:3}
+.stand.cheer .fg{display:block}
+.fg i{position:absolute;inset:0;background-repeat:repeat-x;background-size:120px 46px}
+.fg i.a{animation:fa .3s steps(1,end) infinite}
+.fg i.b{animation:fb .3s steps(1,end) infinite}
+.stand.cheer::before{animation:cj .24s steps(1) infinite}
+.stand.cheer::after{animation:cj2 .2s steps(1) infinite}
+@keyframes cj{50%{background-position:0 -5px}}
+@keyframes cj2{50%{background-position:0 -8px}}
+/* banner */
+#ban{position:fixed;left:0;right:0;top:32%;z-index:49;text-align:center;pointer-events:none;animation:bn 2.8s steps(14) 1 forwards}
+#ban.hide{display:none}
+#banT{font-size:clamp(26px,10vw,56px);line-height:1.2;color:var(--yellow);text-shadow:4px 4px 0 var(--pink),8px 8px 0 #000}
+#banS{font-family:var(--read);font-size:34px;color:#fff;text-shadow:2px 2px 0 #000}
+@keyframes bn{0%{transform:scale(.2);opacity:1}15%{transform:scale(1.2)}30%{transform:scale(1)}85%{opacity:1}100%{transform:scale(1);opacity:0}}
+/* rain */
+#rain{position:fixed;inset:0;z-index:47;pointer-events:none;animation:rn .35s linear infinite}
+#rain::before{content:"";position:absolute;inset:0;background:rgba(20,40,90,.28)}
+@keyframes rn{to{background-position:-24px 64px,-36px 96px}}
+/* start lights */
+#grid{position:fixed;inset:0;z-index:45;background:rgba(18,10,46,.92);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:16px 12px 90px}
+#grid.hide{display:none}
+.gbox{width:100%;max-width:720px;text-align:center}
+#gsub{color:#fff;text-shadow:2px 2px 0 #000;margin-bottom:12px}
+#lights{margin:14px 0}
+.lc{display:inline-block;margin:0 4px;padding:6px 8px;background:#0b0620;border:3px solid #fff}
+.lc i{display:block;width:clamp(28px,9vw,46px);aspect-ratio:1;border-radius:50%;background:#2a0a14;margin:6px 0;border:3px solid #000}
+.lc.on i{background:#ff1a1a;box-shadow:0 0 0 3px #ff6a6a,0 0 18px #ff1a1a}
+#gword{font-size:clamp(48px,18vw,110px);line-height:1.1;color:var(--green);text-shadow:6px 6px 0 #000,12px 12px 0 var(--pink);margin:10px 0;animation:cn .5s steps(4) 1}
+#gstrip{margin-top:18px;padding:10px 0 12px;background:#4a4a58;border-top:3px solid #fff;overflow:hidden;position:relative}
+#gstrip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:repeating-linear-gradient(90deg,#e10600 0 14px,#fff 14px 28px)}
+.gc{display:inline-block;margin:6px 4px;animation:rev .12s steps(2) infinite}
+@keyframes rev{50%{transform:translate(1px,-1px)}}
+#gstrip.go .gc{animation:launch 1.4s steps(14) var(--d,0ms) 1 forwards}
+@keyframes launch{to{transform:translateX(130vw)}}
+/* podium */
+#podBox{padding:0;overflow:hidden}
+#pod{display:block;width:100%;height:300px;background:linear-gradient(#0b0620,#2b1055 70%,#3d1368)}
+@media (prefers-reduced-motion:reduce){.car::after,.sl,.car.spin,.lw,.fg i,.stand.cheer::before,.stand.cheer::after,#ban,#rain,.gc,#gstrip.go .gc,#gword{animation:none}}
 </style>
 </head>
 <body>
@@ -153,6 +213,17 @@ body.adm #credit{bottom:52px}
 <button id="resetBtn" class="hide">RESTART GAME</button>
 <div id="fx"></div><canvas id="cf" class="hide"></canvas>
 <div id="credit">by Daniel and Binh</div>
+<div id="grid" class="hide" role="status" aria-live="polite">
+  <div class="gbox">
+    <div class="ptitle">GET READY!</div>
+    <div class="sub" id="gsub">Lights out and away we go!</div>
+    <div id="lights"><div class="lc"><i></i><i></i></div><div class="lc"><i></i><i></i></div><div class="lc"><i></i><i></i></div><div class="lc"><i></i><i></i></div><div class="lc"><i></i><i></i></div></div>
+    <div id="gword" class="hide">GO!</div>
+    <div id="gstrip"></div>
+  </div>
+</div>
+<div id="ban" class="hide" role="status" aria-live="assertive"><div id="banT"></div><div id="banS"></div></div>
+<div id="rain" class="hide"></div>
 <div id="pit" class="hide" role="status" aria-live="polite">
   <div class="pbox">
     <div class="ptitle">PIT STOP!</div>
@@ -193,13 +264,14 @@ body.adm #credit{bottom:52px}
   </section>
 
   <section id="s-r" class="hide">
-    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rPause" class="y blink hide">PAUSED BY HOST</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
+    <div class="box"><div id="rHead" class="big"></div><p id="rSub" class="d"></p><p id="rExpl" class="expl hide"></p><p id="rFast" class="hide"></p><p id="rPause" class="y blink hide">PAUSED BY HOST</p><button class="go hide" id="pauseBtn">PAUSE</button></div>
     <div class="box"><div class="stand"></div><div id="rTrack"></div></div>
     <p id="rMe" class="y"></p>
   </section>
 
   <section id="s-end" class="hide">
     <div class="box"><div class="big y blink">CHEQUERED FLAG!</div><p id="eMe"></p></div>
+    <div class="box" id="podBox"><canvas id="pod"></canvas></div>
     <div class="box"><div class="stand"></div><div id="eTrack"></div></div>
   </section>
 
@@ -250,6 +322,194 @@ function car(i) {
 }
 for (let i = 0; i < 5; i++) { const h = car(i); h.style.animationDelay = (-i * 1.4) + 's'; $('#parade').appendChild(h); }
 
+// ---------- GRAND PRIX extras: sound, effects, start lights, pit stop, podium ----------
+// extra sound effects (your own files): cheering, fire, good, bad and fireworks (.mp3), controlled by the SFX button
+const Sx = (() => {
+  const els = {}, timers = {};
+  const get = n => { if (!els[n]) { const a = new Audio(n + '.mp3'); a.preload = 'auto'; a.addEventListener('error', () => { a.dead = true; }); els[n] = a; } return els[n]; };
+  return {
+    play(n, ms, vol) {
+      if (Sfx.isSfxMuted()) return;
+      const a = get(n); if (a.dead) return;
+      a.volume = vol == null ? 0.85 : vol;
+      try { a.currentTime = 0; } catch (e) {}
+      const p = a.play(); if (p && p.catch) p.catch(() => {});
+      clearTimeout(timers[n]); if (ms) timers[n] = setTimeout(() => a.pause(), ms);
+    },
+    stop(n) { if (els[n]) els[n].pause(); clearTimeout(timers[n]); },
+    sync() { if (Sfx.isSfxMuted()) Object.keys(els).forEach(n => els[n].pause()); }
+  };
+})();
+
+// pixel effects: flames, smoke, tyre smoke, sparkles (two frames each)
+const FXP = { y: '#ffd23f', o: '#ff8a1f', r: '#e10600', k: '#2a2a34', g: '#6a6a7a', l: '#b9b9c8', w: '#ffffff', s: '#fff4a0' };
+function flameRows(w, h, f) {
+  const c = (w - 1) / 2, rows = Array.from({ length: h }, () => Array(w).fill('.'));
+  for (let x = 0; x < w; x++) {
+    const base = Math.pow(1 - Math.abs(x - c) / (c + 1), 0.8), wob = f ? (x * 7 + 3) % 3 : (x * 5 + 1) % 3;
+    const ht = Math.max(1, Math.min(h, Math.round((h - 2) * base) + wob));
+    for (let k = 0; k < ht; k++) rows[h - 1 - k][x] = k < ht * 0.4 ? 'y' : k < ht * 0.75 ? 'o' : 'r';
+  }
+  return rows.map(r => r.join(''));
+}
+function smokeRows(w, h, f, dark) {
+  const rows = Array.from({ length: h }, () => Array(w).fill('.')), cols = dark ? ['k', 'k', 'g', 'g'] : ['g', 'l', 'l', 'w'];
+  [2, 3, 3, 4].forEach((sz, i) => {
+    const y = h - 3 - i * 3 - (f ? 1 : 0), x = Math.round(w / 2 - sz / 2 + (((i + f) % 2) ? 1 : -1));
+    for (let dy = 0; dy < sz; dy++) for (let dx = 0; dx < sz; dx++) {
+      const yy = y + dy, xx = x + dx;
+      if (yy >= 0 && yy < h && xx >= 0 && xx < w) rows[yy][xx] = cols[i];
+    }
+  });
+  return rows.map(r => r.join(''));
+}
+function sparkRows(w, h, f) {
+  const rows = Array.from({ length: h }, () => Array(w).fill('.'));
+  const pts = f ? [[w - 4, 3], [3, 6], [w >> 1, 2], [w - 6, h - 3]] : [[3, 3], [w - 4, 6], [w >> 1, h - 3], [5, 2]];
+  pts.forEach(([x, y]) => [[0, 0, 'w'], [1, 0, 's'], [-1, 0, 's'], [0, 1, 's'], [0, -1, 's']].forEach(([dx, dy, ch]) => {
+    const xx = x + dx, yy = y + dy;
+    if (xx >= 0 && xx < w && yy >= 0 && yy < h) rows[yy][xx] = ch;
+  }));
+  return rows.map(r => r.join(''));
+}
+const FXD = { fire: [10, 10], smoke: [10, 10], tyre: [10, 8], spark: [20, 12] };
+function fxRows(kind, f) {
+  if (kind === 'fire') return flameRows(10, 10, f);
+  if (kind === 'smoke') return smokeRows(10, 10, f, true);
+  if (kind === 'tyre') return smokeRows(10, 8, f, false);
+  return sparkRows(20, 12, f);
+}
+function gridSvg(frames, w, h, cls) {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h); svg.setAttribute('class', cls); svg.setAttribute('shape-rendering', 'crispEdges');
+  frames.forEach((rows, f) => {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'fr f' + f);
+    rows.forEach((row, y) => {
+      let x = 0;
+      while (x < row.length) {
+        const ch = row[x]; let e = x;
+        while (e < row.length && row[e] === ch) e++;
+        if (ch !== '.') {
+          const r = document.createElementNS(NS, 'rect');
+          r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', e - x); r.setAttribute('height', 1); r.setAttribute('fill', FXP[ch]);
+          g.appendChild(r);
+        }
+        x = e;
+      }
+    });
+    svg.appendChild(g);
+  });
+  return svg;
+}
+function fxSvg(kind) { const d = FXD[kind]; return gridSvg([fxRows(kind, 0), fxRows(kind, 1)], d[0], d[1], 'fxs ' + kind); }
+function drawGrid(c, rows, x, y, u) {
+  rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const ch = row[i]; if (ch !== '.') { c.fillStyle = FXP[ch]; c.fillRect(x + i * u, y + j * u, u, u); } } });
+}
+function drawDisc(c, x, y, n, u) {
+  const r = (n - 1) / 2;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const d = Math.hypot(i - r, j - r);
+    if (d <= r + 0.3) { c.fillStyle = d < r * 0.5 ? '#e1e1eb' : '#0e0e10'; c.fillRect(x + i * u, y + j * u, u, u); }
+  }
+}
+// effects on a car in the track view: boost streaks, fire, smoke, tyre smoke, sparkles, spin, lost wheel
+function trackFx(h, lane, r, nitro) {
+  if (r.you && nitro) h.appendChild(el('div', 'sl'));
+  const k = r.fx; if (!k) return;
+  lane.classList.add('fx');
+  if (k === 'fire') { h.appendChild(fxSvg('smoke')); h.appendChild(fxSvg('fire')); }
+  else if (k === 'smoke') { const s = fxSvg('smoke'); s.style.top = '-24px'; h.appendChild(s); }
+  else if (k === 'tyre') h.appendChild(fxSvg('tyre'));
+  else if (k === 'spark') h.appendChild(fxSvg('spark'));
+  else if (k === 'spin') { h.classList.add('spin'); h.appendChild(fxSvg('tyre')); }
+  else if (k === 'wheel') { h.classList.add('tilt'); h.appendChild(fxSvg('tyre')); h.appendChild(el('div', 'lw')); }
+}
+
+// banner, crowd cheering, rain
+function banner(title, sub) {
+  const b = $('#ban');
+  b.className = ''; $('#banT').textContent = title; $('#banS').textContent = sub || '';
+  b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+  clearTimeout(banner.t); banner.t = setTimeout(() => b.classList.add('hide'), 2800);
+}
+function cheer(ms) {
+  document.querySelectorAll('.stand').forEach(s => s.classList.add('cheer'));
+  clearTimeout(cheer.t); cheer.t = setTimeout(() => document.querySelectorAll('.stand').forEach(s => s.classList.remove('cheer')), ms);
+}
+function overtake(m) {
+  const you = m.top && m.top[0] && m.top[0].you;
+  banner('OVERTAKE!', you ? 'YOU take the lead!' : m.ov + ' takes the lead!');
+  cheer(3200); Sx.play('cheering', 4200);
+}
+function reactR(m) {
+  const f = $('#rFast');
+  if (m.fl) { f.textContent = 'FASTEST LAP: ' + (m.me.fast ? 'YOU' : m.fl) + '  +' + m.fb; f.classList.remove('hide'); }
+  else f.classList.add('hide');
+  if (m.ov) overtake(m);
+}
+function rainOn() { $('#rain').classList.remove('hide'); }
+function rainOff() { $('#rain').classList.add('hide'); }
+
+function flagTile(f) {
+  const cv = document.createElement('canvas'); cv.width = 120; cv.height = 46;
+  const c = cv.getContext('2d'), cols = ['#e10600', '#ffffff', '#ff8700', '#2a4bd7', '#00856f', '#ffd23f'];
+  for (let i = 0; i < 6; i++) {
+    const x = 8 + i * 20, top = 4 + (i % 3) * 4;
+    c.fillStyle = '#d8d0f0'; c.fillRect(x, top, 2, 30 - (i % 2) * 4);
+    for (let cx = 0; cx < 7; cx++) for (let cy = 0; cy < 4; cy++) {
+      const yo = Math.round(Math.sin(cx / 1.3 + (f ? 1.6 : 0)) * 1.5);
+      c.fillStyle = i % 3 === 1 ? ((cx + cy) % 2 ? '#ffffff' : '#111111') : cols[i];
+      c.fillRect(x + 2 + cx * 2, top + cy * 2 + yo, 2, 2);
+    }
+  }
+  return cv.toDataURL();
+}
+function rainTile(n, drops, seed) {
+  const cv = document.createElement('canvas'); cv.width = n; cv.height = n;
+  const c = cv.getContext('2d');
+  c.fillStyle = 'rgba(200,222,255,.85)';
+  for (let i = 0; i < drops; i++) {
+    const x = (i * 37 + seed * 11) % n, y = (i * 53 + seed * 23) % n;
+    for (let k = 0; k < 7; k++) c.fillRect(x - Math.floor(k / 3), (y + k) % n, 2, 1);
+  }
+  return cv.toDataURL();
+}
+document.querySelectorAll('.stand').forEach(s => {
+  const g = el('div', 'fg');
+  ['a', 'b'].forEach((k, f) => { const i = el('i', k); i.style.backgroundImage = 'url(' + flagTile(f) + ')'; g.appendChild(i); });
+  s.appendChild(g);
+});
+$('#rain').style.backgroundImage = 'url(' + rainTile(64, 9, 1) + '),url(' + rainTile(96, 7, 2) + ')';
+
+// ---------- start lights ----------
+const gridUI = { on: false, raf: 0 };
+function gridHide() {
+  gridUI.on = false; cancelAnimationFrame(gridUI.raf);
+  const g = $('#grid'); if (g) g.classList.add('hide');
+}
+function gridStart(m) {
+  pitHide();
+  const T0 = Date.now() - m.el, OUT = 5000 + m.hold;
+  $('#grid').classList.remove('hide'); $('#gword').classList.add('hide'); $('#gsub').textContent = 'Lights out and away we go!';
+  const lamps = [...document.querySelectorAll('#lights .lc')], strip = $('#gstrip');
+  lamps.forEach(l => l.classList.remove('on'));
+  strip.textContent = ''; strip.className = '';
+  for (let i = 0; i < 5; i++) { const c = el('div', 'gc'); c.style.setProperty('--d', (i * 70) + 'ms'); c.appendChild(car(i)); strip.appendChild(c); }
+  let lit = 0, out = false;
+  function loop() {
+    if (!gridUI.on) return;
+    const t = Date.now() - T0, n = t < OUT ? Math.min(5, Math.floor(t / 1000)) : 0;
+    if (!out && n !== lit) { lit = n; lamps.forEach((l, i) => l.classList.toggle('on', i < n)); if (n) beep([330 + n * 60]); }
+    if (!out && t >= OUT) {
+      out = true; lamps.forEach(l => l.classList.remove('on'));
+      $('#gword').classList.remove('hide'); $('#gsub').textContent = ''; strip.className = 'go';
+      beep([784, 1047, 1319]);
+    }
+    gridUI.raf = requestAnimationFrame(loop);
+  }
+  gridUI.on = true; loop();
+}
+
 // ---------- PIT STOP: names roll past, slow down, and one random driver gets an event ----------
 const pitUI = { on: false, raf: 0 }, carImgs = {};
 function carImg(ci, f, sc) {
@@ -264,36 +524,56 @@ function carImg(ci, f, sc) {
 }
 function pitHide() {
   pitUI.on = false; cancelAnimationFrame(pitUI.raf);
+  gridHide(); podiumStop(); rainOff();
   const p = $('#pit'); if (p) p.classList.add('hide');
 }
 function pitStart(m) {
   pitHide();
-  const cv = $('#reel'), N = m.names.length;
+  const cv = $('#reel'), N = m.names.length, kind = m.ev.fx || '';
   $('#pit').classList.remove('hide');
   $('#pcount').classList.add('hide'); $('#pres').classList.add('hide'); $('#psub').classList.remove('hide');
   const ctx = cv.getContext('2d'), rc = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, W = rc.width, H = rc.height;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
   const CW = Math.max(150, Math.min(210, W * 0.56)), sc = CW >= 190 ? 4 : 3;
-  const D = (N * Math.max(1, Math.ceil(30 / N)) + m.w) * CW + CW / 2 - W / 2;
-  const T0 = Date.now() - m.el, SPIN = m.spin, COUNT = m.count;
+  const iw = N * Math.max(1, Math.ceil(30 / N)) + m.w, D = iw * CW + CW / 2 - W / 2;
+  const T0 = Date.now() - m.el, SPIN = m.spin, COUNT = m.count, RES = SPIN + COUNT;
   let lastCard = -1, lastTick = 0, lastN = 0, shown = false;
   if (document.fonts && document.fonts.load) document.fonts.load('34px VT323');
 
+  // the event shown on the winner's car (only after the countdown)
+  function winnerFx(cl, ct, t) {
+    const rt = t - RES, f = Math.floor(t / 180) % 2, fu = Math.round(sc * 1.5);
+    if (kind === 'fire') {
+      drawGrid(ctx, fxRows('smoke', f), cl + 7 * sc, ct + 6 * sc - 17 * fu, fu);
+      drawGrid(ctx, fxRows('fire', f), cl + 7 * sc, ct + 6 * sc - 10 * fu, fu);
+    } else if (kind === 'smoke') drawGrid(ctx, fxRows('smoke', f), cl + 7 * sc, ct + 6 * sc - 10 * fu, fu);
+    else if (kind === 'tyre' || kind === 'spin') drawGrid(ctx, fxRows('tyre', f), cl + sc, ct + 8 * sc, fu);
+    else if (kind === 'spark') drawGrid(ctx, fxRows('spark', f), cl + 2 * sc, ct - 3 * fu, fu);
+    else if (kind === 'wheel') {
+      drawGrid(ctx, fxRows('tyre', f), cl + sc, ct + 8 * sc, fu);
+      if (rt < 3200) drawDisc(ctx, cl + 10 * sc + rt * 0.16, ct + 14 * sc - Math.abs(Math.sin(rt / 160)) * 22 * (1 - rt / 3200), 9, sc);
+    }
+  }
   function draw(x, done, t) {
     ctx.clearRect(0, 0, W, H);
-    const first = Math.floor(x / CW) - 1, last = Math.floor((x + W) / CW) + 1, f = Math.floor(t / 90) % 2;
+    const first = Math.floor(x / CW) - 1, last = Math.floor((x + W) / CW) + 1, f = Math.floor(t / 90) % 2, res = t >= RES;
     for (let i = first; i <= last; i++) {
-      const nm = m.names[((i % N) + N) % N], left = i * CW - x;
+      const nm = m.names[((i % N) + N) % N], left = i * CW - x, isW = i === iw;
       ctx.fillStyle = '#1d1145'; ctx.fillRect(left + 4, 6, CW - 8, H - 12);
       ctx.strokeStyle = '#4a3a8a'; ctx.lineWidth = 3; ctx.strokeRect(left + 5.5, 7.5, CW - 11, H - 15);
-      const img = carImg(nm.c, done ? 0 : f, sc);
-      ctx.drawImage(img, left + (CW - img.width) / 2, 18);
+      const img = carImg(nm.c, done ? 0 : f, sc), cl = left + (CW - img.width) / 2, ct = 44;
+      if (isW && res && kind === 'spin') {
+        const q = Math.PI / 7, a = Math.round(Math.min(1, (t - RES) / 1400) * Math.PI * 4 / q) * q;
+        ctx.save(); ctx.translate(cl + img.width / 2, ct + img.height / 2); ctx.rotate(a);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2); ctx.restore();
+      } else ctx.drawImage(img, cl + (isW && res && kind === 'fire' ? (Math.floor(t / 70) % 2 ? 1 : -1) : 0), ct);
       let fs = 34; ctx.font = fs + 'px VT323, monospace';
       const tw = ctx.measureText(nm.n).width;
       if (tw > CW - 20) { fs = Math.floor(fs * (CW - 20) / tw); ctx.font = fs + 'px VT323, monospace'; }
       ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
       ctx.fillText(nm.n, left + CW / 2, H - 22);
+      if (isW && res) winnerFx(cl, ct, t);
     }
     const cx = W / 2 - CW / 2;
     if (done) { ctx.fillStyle = 'rgba(18,10,46,.65)'; ctx.fillRect(0, 0, cx, H); ctx.fillRect(cx + CW, 0, W - cx - CW, H); }
@@ -314,6 +594,10 @@ function pitStart(m) {
     $('#phead').textContent = e.title;
     $('#pdesc').textContent = e.desc;
     $('#pdelta').textContent = (e.d > 0 ? '+' : '\u2212') + Math.abs(e.d) + ' POINTS';
+    if (kind === 'rain') rainOn();
+    if (kind === 'fire') Sx.play('fire', 13000);
+    Sx.play(e.good ? 'good' : 'bad', 6000);
+    if (e.good) cheer(3500);
     beep(e.good ? [523, 659, 784, 1047] : [196, 147, 110]);
   }
   function loop() {
@@ -323,10 +607,10 @@ function pitStart(m) {
     const card = Math.floor((x + W / 2) / CW);
     if (t < SPIN && card !== lastCard && t - lastTick > 110) { lastTick = t; beep([700]); }
     lastCard = card;
-    if (t >= SPIN && t < SPIN + COUNT) {
-      const n = Math.ceil((SPIN + COUNT - t) / 1000);
+    if (t >= SPIN && t < RES) {
+      const n = Math.ceil((RES - t) / 1000);
       if (n !== lastN) { lastN = n; countShow(n); }
-    } else if (t >= SPIN + COUNT && !shown) { shown = true; result(); }
+    } else if (t >= RES && !shown) { shown = true; result(); }
     pitUI.raf = requestAnimationFrame(loop);
   }
   pitUI.on = true; loop();
@@ -336,10 +620,80 @@ function renderPitRes(m) {
   const e = m.ev, sign = n => (n > 0 ? '+' : '\u2212') + Math.abs(n), hd = $('#rHead');
   hd.className = 'big ' + (e.good ? 'ok' : 'no');
   hd.textContent = 'PIT STOP: ' + e.title;
-  $('#rSub').textContent = (m.you ? 'You' : m.who) + ': ' + sign(e.d) + ' points' + (e.vd ? '  |  ' + m.vic + ': ' + sign(-e.vd) + ' points' : '');
-  $('#rExpl').classList.add('hide'); $('#rPause').classList.add('hide'); $('#pauseBtn').classList.add('hide');
+  let sub = (m.you ? 'You' : m.who) + ': ' + sign(e.d) + ' points';
+  if (e.vd) sub += '  |  ' + m.vic + ': ' + sign(-e.vd) + ' points';
+  if (e.all) sub += '  |  Everyone else: up to ' + sign(-e.all) + ' points';
+  if (!m.you && m.mine) sub += '  |  You: ' + sign(m.mine) + ' points';
+  $('#rSub').textContent = sub;
+  $('#rExpl').classList.add('hide'); $('#rPause').classList.add('hide'); $('#pauseBtn').classList.add('hide'); $('#rFast').classList.add('hide');
   drawTrack($('#rTrack'), m.top, m.me, m.max, false);
   $('#rMe').textContent = 'You are in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points';
+  if (e.fx === 'rain') rainOn();
+  if (m.ov) overtake(m);
+}
+
+// ---------- podium ----------
+const podUI = { on: false, raf: 0 };
+function podiumStop() { podUI.on = false; cancelAnimationFrame(podUI.raf); }
+const TROPHY = ['..yyyyyyyy..', '.yyyyyyyyyy.', 'yyy.yyyy.yyy', 'y.y.yyyy.y.y', 'yyy.yyyy.yyy', '..yyyyyyyy..', '...yyyyyy...', '....yyyy....', '.....yy.....', '.....yy.....', '....yyyy....', '...yyyyyy...', '..oooooooo..'];
+function podiumStart(m) {
+  podiumStop();
+  const cv = $('#pod'); if (!cv) return;
+  const rc = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, W = rc.width, H = rc.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
+  const top = m.top.slice(0, 3), bw = Math.min(120, Math.floor(W / 3.3)), sc = bw >= 90 ? 2 : 1;
+  const hts = [74, 52, 36], cols = ['#ffd23f', '#c0c4c8', '#c77a3a'], base = H - 6;
+  const cxs = [W / 2, W / 2 - bw - 6, W / 2 + bw + 6];            // centre x for 1st, 2nd, 3rd
+  const FW = ['#ff2e97', '#19e3ff', '#ffd23f', '#3dff7a', '#ff8a1f', '#ffffff'], parts = [];
+  let last = Date.now(), nextFw = 0, seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const T0 = last;
+  function burst(x, y) {
+    const col = FW[rnd() * FW.length | 0];
+    for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2, v = 50 + rnd() * 40; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 60, life: 1.1 + rnd() * 0.5, max: 1.6, col, sz: 3 }); }
+  }
+  function spray(x, dir) {
+    for (let k = 0; k < 2; k++) parts.push({ x, y: base - hts[0] - 26, vx: dir * (40 + rnd() * 50), vy: -(120 + rnd() * 50), g: 220, life: 0.9, max: 0.9, col: rnd() < 0.5 ? '#ffffff' : '#fff4a0', sz: 3 });
+  }
+  function frame() {
+    if (!podUI.on) return;
+    const now = Date.now(), dt = Math.min(0.05, (now - last) / 1000), t = now - T0; last = now;
+    if (!reduce) {
+      if (t >= nextFw) { burst(20 + rnd() * (W - 40), 20 + rnd() * H * 0.3); nextFw = t + 650; }
+      if (top.length) { spray(cxs[0] - 44, -1); spray(cxs[0] + 44, 1); }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.life -= dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.life <= 0) parts.splice(i, 1);
+    }
+    ctx.clearRect(0, 0, W, H);
+    top.forEach((pl, i) => {
+      const x = cxs[i], bh = hts[i], bx = x - bw / 2, by = base - bh;
+      ctx.fillStyle = cols[i]; ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(bx, by, bw, 3);
+      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(bx + bw - 6, by, 6, bh);
+      ctx.fillStyle = '#1d1145'; ctx.font = '40px VT323, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(i + 1), x, base - 8);
+      const img = carImg(pl.id, 0, sc), cy = by - img.height;
+      ctx.drawImage(img, x - img.width / 2, cy);
+      let fs = 26; ctx.font = fs + 'px VT323, monospace';
+      const tw = ctx.measureText(pl.name).width;
+      if (tw > bw + 20) { fs = Math.floor(fs * (bw + 20) / tw); ctx.font = fs + 'px VT323, monospace'; }
+      ctx.fillStyle = pl.you ? '#ffd23f' : '#ffffff'; ctx.fillText(pl.name, x, cy - 6);
+    });
+    if (top.length) {
+      const bob = reduce ? 0 : Math.round(Math.sin(t / 300) * 2) * 2, ty = base - hts[0] - 16 - 26 - 13 * 4 + bob;
+      TROPHY.forEach((row, j) => [...row].forEach((ch, i) => {
+        if (ch !== '.') { ctx.fillStyle = ch === 'y' ? '#ffd23f' : '#c77a3a'; ctx.fillRect(W / 2 - 24 + i * 4, ty + j * 4, 4, 4); }
+      }));
+    }
+    parts.forEach(p => { ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.max + 0.2)); ctx.fillStyle = p.col; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.sz, p.sz); });
+    ctx.globalAlpha = 1;
+    if (!reduce) podUI.raf = requestAnimationFrame(frame);
+  }
+  podUI.on = true; frame();
+  Sx.play('cheering', 9000); Sx.play('fireworks', 9000);
 }
 
 function show(id) {
@@ -472,7 +826,7 @@ const muteLabel = () => { $('#muteBtn').textContent = Sfx.isMuted() ? 'SOUND: OF
 muteLabel();
 $('#muteBtn').onclick = () => { Sfx.unlock(); Sfx.toggle(); muteLabel(); };
 const sfxLabel = () => { $('#sfxBtn').textContent = Sfx.isSfxMuted() ? 'SFX: OFF' : 'SFX: ON'; };
-$('#sfxBtn').onclick = () => { Sfx.unlock(); Sfx.toggleSfx(); sfxLabel(); };
+$('#sfxBtn').onclick = () => { Sfx.unlock(); Sfx.toggleSfx(); Sx.sync(); sfxLabel(); };
 sfxLabel();
 function setPause(on) {
   paused = on;
@@ -505,6 +859,7 @@ function on(m) {
   else if (m.t === 'ack') beep([330]);
   else if (m.t === 'r') renderR(m);
   else if (m.t === 'pit') pitStart(m);
+  else if (m.t === 'grid') gridStart(m);
   else if (m.t === 'pr') renderPitRes(m);
   else if (m.t === 'end') renderEnd(m);
 }
@@ -541,13 +896,13 @@ function tickBar() {
 
 function drawTrack(box, top, me, max, nitro, final) {
   box.textContent = '';
-  const rows = top.map((p, i) => ({ k: 'p' + p.id, ci: p.id, n: (i + 1) + '. ' + p.name, s: p.score, pos: p.pos, you: p.you }));
-  if (me.rank > 5) rows.push({ k: 'p' + me.id, ci: me.id, n: me.rank + '. YOU', s: me.score, pos: me.pos, you: true });
+  const rows = top.map((p, i) => ({ k: 'p' + p.id, ci: p.id, n: (i + 1) + '. ' + p.name, s: p.score, pos: p.pos, you: p.you, fx: p.fx, fast: p.fast }));
+  if (me.rank > 5) rows.push({ k: 'p' + me.id, ci: me.id, n: me.rank + '. YOU', s: me.score, pos: me.pos, you: true, fx: me.fx, fast: me.fast });
   rows.forEach((r, i) => {
-    const t = el('div', 'track' + (r.you ? ' you' : ''));
+    const t = el('div', 'track' + (r.you ? ' you' : '') + (r.fast ? ' fast' : ''));
     const nm = el('div', 'nm'); nm.appendChild(el('span', '', r.n)); nm.appendChild(el('span', '', String(r.s)));
     const lane = el('div', 'lane'), h = el('div', 'car' + (r.you && nitro ? ' boost' : ''));
-    h.appendChild(car(r.ci !== undefined ? r.ci : i)); lane.appendChild(h); lane.appendChild(el('div', 'finish'));
+    h.appendChild(car(r.ci !== undefined ? r.ci : i)); trackFx(h, lane, r, nitro); lane.appendChild(h); lane.appendChild(el('div', 'finish'));
     t.appendChild(nm); t.appendChild(lane); box.appendChild(t);
     const pos = f => 'calc((100% - 100px) * ' + f + ')';
     h.style.left = pos(prev[r.k] || 0);
@@ -568,7 +923,8 @@ function renderR(m) {
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  BOOST! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
   setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
-  drawTrack($('#rTrack'), m.top, me, m.max, nitro);
+  if (!me.ok) { m.top.forEach(x => { if (x.you && !x.fx) x.fx = 'tyre'; }); if (!me.fx) me.fx = 'tyre'; }
+  drawTrack($('#rTrack'), m.top, me, m.max, nitro); reactR(m);
   $('#rMe').textContent = 'You are in place ' + me.rank + ' of ' + m.total + ' with ' + me.score + ' points';
   beep(me.ok ? [523, 784] : [196, 147]);
   if (nitro) nitroFx();
@@ -578,7 +934,7 @@ function renderEnd(m) {
   clearInterval(timerId); show('s-end');
   $('#eMe').textContent = 'You finished in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points. Thanks for racing!';
   drawTrack($('#eTrack'), m.top, m.me, m.max, false, true);
-  beep([523, 659, 784, 1047]); confetti();
+  beep([523, 659, 784, 1047]); confetti(); podiumStart(m);
 }
 
 (function () {
