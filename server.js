@@ -130,7 +130,9 @@ const players = new Map(); // token -> spelare
 let phase = 'lobby', qi = -1, cur = null, timer = null, revealTimer = null, paused = false, pitTimer = null, pit = null, pid = 0, gridTimer = null, grid = null, lastLead = null, ovName = '', fastName = '';
 
 const live = () => [...players.values()].filter(p => p.c);
-const answered = () => live().filter(p => p.ans !== null).length;
+const racers = () => [...players.values()].filter(p => !p.admin);
+const liveR = () => racers().filter(p => p.c);
+const answered = () => liveR().filter(p => p.ans !== null).length;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 function handle(c, m) {
@@ -142,7 +144,7 @@ function handle(c, m) {
       p = { token: crypto.randomBytes(8).toString('hex'), name, score: 0, streak: 0, pos: 0, ans: null, t: 0, delta: 0, ok: false, c: null, id: ++pid, hit: false, fx: '', fxQ: -9, fast: false };
       players.set(p.token, p);
     }
-    p.c = c; c.player = p; c.admin = m.admin === ADMIN;
+    p.c = c; c.player = p; c.admin = m.admin === ADMIN; p.admin = c.admin;
     send(c, { t: 'hello', token: p.token, name: p.name, admin: c.admin });
     if (phase === 'question') sendQ(c, p);
     else if (phase === 'end') send(c, endMsg(p));
@@ -150,9 +152,10 @@ function handle(c, m) {
     else if (phase === 'pit') send(c, pitMsg(p));
     else if (phase === 'pitres') send(c, pitResMsg(p));
     else if (phase === 'grid') send(c, gridMsg());
-    else send(c, { t: 'wait', phase, n: live().length });
+    else send(c, { t: 'wait', phase, n: liveR().length });
     pulse();
   } else if (m.t === 'start' && c.admin && phase === 'lobby') {
+    players.forEach((p, k) => { if (!p.c) players.delete(k); });
     startGrid();
   } else if (m.t === 'reset' && c.admin) {
     reset();
@@ -162,13 +165,13 @@ function handle(c, m) {
   } else if (m.t === 'resume' && c.admin && (phase === 'reveal' || phase === 'pitres') && paused) {
     live().forEach(p => send(p.c, { t: 'pause', on: false }));
     if (phase === 'pitres') startGrid(); else afterReveal();
-  } else if (m.t === 'a' && phase === 'question' && c.player && c.player.ans === null && m.i === qi) {
+  } else if (m.t === 'a' && phase === 'question' && c.player && !c.player.admin && c.player.ans === null && m.i === qi) {
     const k = m.c | 0;
-    if (k < -1 || k > 3) return; // -1 = SKIP (counts as a wrong answer)
+    if (k < 0 || k > 3) return;
     c.player.ans = k; c.player.t = Date.now();
     send(c, { t: 'ack' });
     pulse();
-    if (live().every(p => p.ans !== null)) reveal();
+    if (liveR().every(p => p.ans !== null)) reveal();
   }
 }
 
@@ -188,12 +191,12 @@ function drop(c) {
   if (c.player && c.player.c === c) {
     c.player.c = null;
     pulse();
-    if (phase === 'question' && live().length > 0 && live().every(p => p.ans !== null)) reveal();
+    if (phase === 'question' && liveR().length > 0 && liveR().every(p => p.ans !== null)) reveal();
   }
 }
 
 function pulse() {
-  const n = live().length;
+  const n = liveR().length;
   live().forEach(p => {
     if (phase === 'lobby') send(p.c, { t: 'wait', phase, n });
     else if (phase === 'question') send(p.c, { t: 'prog', done: answered(), of: n });
@@ -203,7 +206,7 @@ function pulse() {
 function sendQ(c, p) {
   const q = Q[qi];
   send(c, { t: 'q', i: qi, n: Q.length, l: q.l, q: q.q, code: q.c || '', o: cur.opts,
-    left: cur.dur - (Date.now() - cur.start), dur: cur.dur, answered: p.ans !== null, done: answered(), of: live().length });
+    left: cur.dur - (Date.now() - cur.start), dur: cur.dur, answered: p.ans !== null || !!p.admin, done: answered(), of: liveR().length, ca: p.admin ? cur.correct : -1 });
 }
 
 function nextQ() {
@@ -226,7 +229,7 @@ function progress() {
 }
 
 function board(p) {
-  const ranked = [...players.values()].sort((a, b) => b.score - a.score);
+  const ranked = racers().sort((a, b) => b.score - a.score);
   return {
     top: ranked.slice(0, 5).map(x => ({ id: x.id, name: x.name, score: x.score, pos: x.pos, you: x === p, fx: fxOf(x), fast: x.fast })),
     me: { id: p.id, fx: fxOf(p), fast: p.fast, rival: rivalOf(ranked, p), rank: ranked.indexOf(p) + 1, score: p.score, pos: p.pos, delta: p.delta, ok: p.ok, streak: p.streak, answered: p.ans !== null, skipped: p.ans === -1 },
@@ -257,15 +260,15 @@ function reveal() {
   });
   // Fastest lap: the fastest correct answer gets a bonus
   fastName = '';
-  const okp = [...players.values()].filter(x => x.ok);
+  const okp = racers().filter(x => x.ok);
   if (okp.length) {
     const f = okp.reduce((a, b) => (b.t < a.t ? b : a));
     f.fast = true; f.delta += FAST_BONUS; f.score += FAST_BONUS; fastName = f.name;
   }
   // Car position (display only): moves only after a correct answer, never goes back, and no car
   // can pass the leading car. A car only gets in front by taking the lead on points.
-  const lead = Math.max(0, ...[...players.values()].map(x => x.score)), P = progress();
-  const leaders = lead > 0 ? [...players.values()].filter(x => x.score === lead) : [];
+  const lead = Math.max(0, ...racers().map(x => x.score)), P = progress();
+  const leaders = lead > 0 ? racers().filter(x => x.score === lead) : [];
   leaders.forEach(p => { if (p.ok) p.pos = Math.max(p.pos || 0, P); });
   const L = leaders.length ? Math.max(...leaders.map(x => x.pos || 0)) : 0;
   players.forEach(p => {
@@ -280,7 +283,7 @@ function reveal() {
 
 // ---------- Pit stop: ett slumpmoment efter var PIT_EVERY:e fraga ----------
 function afterReveal() {
-  if ((qi + 1) % PIT_EVERY === 0 && qi < Q.length - 1 && live().length > 0) startPit(); else startGrid();
+  if ((qi + 1) % PIT_EVERY === 0 && qi < Q.length - 1 && liveR().length > 0) startPit(); else startGrid();
 }
 
 const FAST_BONUS = 50;
@@ -301,7 +304,7 @@ function fxOf(p) {
 
 // returns the name of a new leader (on points), or '' if the lead did not change hands
 function checkLead() {
-  const top = [...players.values()].sort((a, b) => b.score - a.score)[0];
+  const top = racers().sort((a, b) => b.score - a.score)[0];
   let ov = '';
   if (top && top.score > 0) {
     if (lastLead && lastLead !== top && top.score > lastLead.score) ov = top.name;
@@ -311,7 +314,7 @@ function checkLead() {
 }
 
 function pickEvent(p) {
-  const l = Q[qi].l, ranked = [...players.values()].sort((a, b) => b.score - a.score), i = ranked.indexOf(p);
+  const l = Q[qi].l, ranked = racers().sort((a, b) => b.score - a.score), i = ranked.indexOf(p);
   const ahead = i > 0 ? ranked[i - 1] : null, defs = [];
   const add = (good, title, d, desc, extra) => defs.push(Object.assign({ good, title, d, desc }, extra));
   add(true, 'PERFECT PIT STOP', 50 * l, 'A lightning-fast tyre change. Bonus points for the crew!', { fx: 'spark' });
@@ -340,7 +343,7 @@ function pickEvent(p) {
 // Car positions after a pit stop. A car that lost points always goes backwards, a car that gained points
 // moves forward, and everyone else stays put (or moves forward if the lead changed).
 function settle(changed, before) {
-  const all = [...players.values()], lead = Math.max(0, ...all.map(x => x.score)), P = progress();
+  const all = racers(), lead = Math.max(0, ...all.map(x => x.score)), P = progress();
   all.forEach(p => {
     const target = lead <= 0 ? 0 : Math.min(1, p.score >= lead ? P : P * Math.pow(p.score / lead, 0.7)), old = p.pos || 0;
     if (!changed.includes(p)) p.pos = Math.max(old, target);
@@ -362,11 +365,11 @@ function pitResMsg(p) {
 }
 
 function startPit() {
-  let cand = live().filter(p => !p.hit);
-  if (!cand.length) { players.forEach(p => { p.hit = false; }); cand = live(); }
+  let cand = liveR().filter(p => !p.hit);
+  if (!cand.length) { players.forEach(p => { p.hit = false; }); cand = liveR(); }
   const p = cand[Math.random() * cand.length | 0];
   p.hit = true;
-  const order = shuffle(live().slice());
+  const order = shuffle(liveR().slice());
   pit = { p, ev: pickEvent(p), names: order.map(x => ({ n: x.name, c: x.id })), w: order.indexOf(p), start: Date.now(), mine: null };
   phase = 'pit';
   live().forEach(x => send(x.c, pitMsg(x)));

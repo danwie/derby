@@ -306,7 +306,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const adminKey = new URLSearchParams(location.search).get('admin') || '';
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ws, token = localStorage.getItem('derbyToken') || '', name = localStorage.getItem('derbyName') || '';
-let paused = false, isAdmin = false, qIdx = -1, deadline = 0, dur = 1, timerId = null;
+let joined = false, paused = false, isAdmin = false, qIdx = -1, deadline = 0, dur = 1, timerId = null;
 const prev = {};
 
 // ---------- pixel F1 car (44x16 grid): b body, h light, s shade, a accent, k tyre, r rim, g carbon, j helmet, v visor ----------
@@ -733,6 +733,7 @@ function revealThen(m) {
   rvTimer = setTimeout(() => renderR(m), 2500);
 }
 function placeText(me, total) {
+  if (isAdmin) return 'Host view: ' + total + ' racers';
   return 'You are in place ' + me.rank + ' of ' + total + ' with ' + me.score + ' points' + (me.rival ? '  |  ' + (me.rival.score - me.score) + ' behind ' + me.rival.name : '');
 }
 
@@ -849,11 +850,12 @@ function confetti() {
 // ---------- connection ----------
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
-  ws.onopen = () => { $('#status').classList.add('hide'); if (name) hello(); };
+  ws.onopen = () => { joined = false; $('#status').classList.add('hide'); if (name && document.visibilityState === 'visible') hello(); };
   ws.onmessage = e => on(JSON.parse(e.data));
   ws.onclose = () => { $('#status').classList.remove('hide'); setTimeout(connect, 1500); };
 }
 function tx(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && name && !joined && ws && ws.readyState === 1) hello(); });
 function hello() { tx({ t: 'hi', name, token, admin: adminKey }); }
 
 $('#joinBtn').onclick = () => {
@@ -879,7 +881,7 @@ $('#startBtn').onclick = () => { beep([523, 659, 784]); tx({ t: 'start', key: ad
 
 function on(m) {
   if (m.t === 'hello') {
-    token = m.token; isAdmin = m.admin; name = m.name;
+    token = m.token; isAdmin = m.admin; name = m.name; joined = true;
     localStorage.setItem('derbyToken', token);
     $('#resetBtn').classList.toggle('hide', !isAdmin); document.body.classList.toggle('adm', isAdmin);
   } else if (m.t === 'pause') {
@@ -918,7 +920,7 @@ function renderQ(m) {
     b.onclick = () => answer(i, b);
     box.appendChild(b);
   });
-  const sk = el('button', 'opt skip', 'SKIP'); sk.onclick = () => answer(-1, sk); box.appendChild(sk);
+  if (isAdmin && m.ca >= 0) box.children[m.ca].classList.add('rt');
   if (m.answered) [...box.children].forEach(b => b.disabled = true);
   deadline = Date.now() + m.left; dur = m.dur;
   clearInterval(timerId); timerId = setInterval(tickBar, 200); tickBar();
@@ -962,19 +964,20 @@ function renderR(m) {
   const me = m.me, h = $('#rHead'), nitro = me.ok && me.streak >= 3;
   h.className = 'big ' + (me.ok ? 'ok' : 'no');
   h.textContent = me.ok ? 'RIGHT! +' + me.delta : (me.skipped ? 'SKIPPED' : me.answered ? 'WRONG!' : "TIME'S UP");
+  if (isAdmin) { h.className = 'big'; h.textContent = 'HOST VIEW'; }
   $('#rSub').textContent = 'Correct answer: ' + m.right + (nitro ? '  |  BOOST! ' + me.streak + ' in a row' : '');
   const ex = $('#rExpl'); ex.textContent = m.e || ''; ex.classList.toggle('hide', !m.e);
   setPause(!!m.paused); $('#pauseBtn').classList.toggle('hide', !isAdmin);
   if (!me.ok) { m.top.forEach(x => { if (x.you && !x.fx) x.fx = 'tyre'; }); if (!me.fx) me.fx = 'tyre'; }
   drawTrack($('#rTrack'), m.top, me, m.max, nitro); reactR(m);
   $('#rMe').textContent = placeText(me, m.total);
-  beep(me.ok ? [523, 784] : [196, 147]);
+  if (!isAdmin) beep(me.ok ? [523, 784] : [196, 147]);
   if (nitro) nitroFx();
 }
 
 function renderEnd(m) {
   clearInterval(timerId); show('s-end');
-  $('#eMe').textContent = 'You finished in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points. Thanks for racing!';
+  $('#eMe').textContent = isAdmin ? 'Host view: ' + m.total + ' racers finished. Thanks for hosting!' : 'You finished in place ' + m.me.rank + ' of ' + m.total + ' with ' + m.me.score + ' points. Thanks for racing!';
   drawTrack($('#eTrack'), m.top, m.me, m.max, false, true);
   beep([523, 659, 784, 1047]); confetti(); podiumStart(m);
 }
